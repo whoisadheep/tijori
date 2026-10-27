@@ -1,16 +1,41 @@
+import 'dart:ffi' hide Size;
+import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqlite3/open.dart';
 import 'package:tijori/app/tijori_app.dart';
+import 'package:tijori/core/database/app_database.dart';
 
 void main() {
-  testWidgets('Tijori App root loads successfully', (WidgetTester tester) async {
+  setUpAll(() {
+    open.overrideFor(
+      OperatingSystem.linux,
+      () => DynamicLibrary.open('libsqlite3.so.0'),
+    );
+  });
+
+  testWidgets('Tijori App root loads dashboard successfully', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final db = AppDatabase(NativeDatabase.memory());
+
     await tester.pumpWidget(
-      const ProviderScope(
-        child: TijoriApp(),
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+        ],
+        child: const TijoriApp(),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Tijori Dashboard — Coming Soon'), findsOneWidget);
+    expect(find.text('New Girvi Pledge'), findsOneWidget);
+    expect(find.text('TIJORI'), findsOneWidget);
+
+    await db.close();
   });
 }
