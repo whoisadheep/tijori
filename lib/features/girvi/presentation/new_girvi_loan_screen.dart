@@ -1,13 +1,17 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:tijori/app/theme/app_colors.dart';
 import 'package:tijori/core/database/app_database.dart';
 import 'package:tijori/core/licensing/freemium_service.dart';
 import 'package:tijori/core/licensing/upgrade_paywall_dialog.dart';
 import 'package:tijori/core/printing/slip_printer.dart';
 import 'package:tijori/core/utils/girvi_calculator.dart';
+import 'package:tijori/core/utils/photo_storage_helper.dart';
 import 'package:tijori/features/daily_rates/presentation/daily_rates_providers.dart';
 import 'package:tijori/features/parties/presentation/party_selector_field.dart';
 
@@ -44,6 +48,7 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
   final _guarantorNameCtrl = TextEditingController();
   final _guarantorPhoneCtrl = TextEditingController();
 
+  String? _localPhotoPath;
   bool _isSaving = false;
 
   @override
@@ -187,6 +192,9 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
         principalAmount: principal,
         paymentMode: _paymentMode,
         itemDescription: _itemDescCtrl.text.trim(),
+        localPhotoPath: _localPhotoPath != null
+            ? drift.Value(_localPhotoPath)
+            : const drift.Value.absent(),
         rackLocation: _rackLocationCtrl.text.trim().isNotEmpty
             ? drift.Value(_rackLocationCtrl.text.trim())
             : const drift.Value.absent(),
@@ -598,6 +606,10 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 16),
+
+                          // Collateral Ornament Photo Capture
+                          _buildCollateralPhotoSection(context, colorScheme),
                         ],
                       ),
                     ),
@@ -801,5 +813,157 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildCollateralPhotoSection(
+    BuildContext context,
+    ColorScheme colorScheme,
+  ) {
+    final hasPhoto = PhotoStorageHelper.photoExists(_localPhotoPath);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasPhoto
+              ? AppColors.burntAmber
+              : colorScheme.outlineVariant,
+          width: hasPhoto ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.camera_alt_rounded,
+                    size: 18,
+                    color: hasPhoto ? AppColors.burntAmber : colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Pledged Ornament Photo',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+              if (hasPhoto)
+                TextButton.icon(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                  label: const Text('Remove Photo'),
+                  style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+                  onPressed: () => setState(() => _localPhotoPath = null),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (hasPhoto)
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    File(_localPhotoPath!),
+                    width: 90,
+                    height: 90,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Photo attached successfully',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.champagneDark,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Stored offline in secure local vault storage. This photo will be printed directly onto customer and shop pledge slips.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.refresh_rounded, size: 16),
+                        label: const Text('Change Photo'),
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onPressed: _pickCollateralPhoto,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: _pickCollateralPhoto,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant,
+                    style: BorderStyle.solid,
+                  ),
+                  color: colorScheme.surface,
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.add_a_photo_outlined,
+                      size: 28,
+                      color: colorScheme.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Attach Collateral Ornament Photo',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Click to browse or capture image (JPG, PNG)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickCollateralPhoto() async {
+    final path = await PhotoStorageHelper.pickAndSaveCollateralPhoto();
+    if (path != null && mounted) {
+      setState(() => _localPhotoPath = path);
+    }
   }
 }

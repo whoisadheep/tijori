@@ -266,6 +266,42 @@ class SettingsScreen extends ConsumerWidget {
                               ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            icon: Icon(
+                              license.effectiveTier.isPaid
+                                  ? Icons.lock_outline
+                                  : Icons.verified_user_outlined,
+                              size: 16,
+                            ),
+                            label: Text(
+                              license.effectiveTier.isPaid
+                                  ? 'Revert to Free Evaluation'
+                                  : 'Activate Local Pro Evaluation (Trial)',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            onPressed: () async {
+                              if (license.effectiveTier.isPaid) {
+                                await freemiumNotifier.updateOfflineLicense(
+                                  LicenseState.defaultFree(),
+                                );
+                              } else {
+                                await freemiumNotifier.updateOfflineLicense(
+                                  LicenseState(
+                                    tier: SubscriptionTier.pro,
+                                    validUntil: DateTime.now().add(const Duration(days: 30)),
+                                    isActive: true,
+                                    remoteKillSwitch: false,
+                                    lastVerifiedAt: DateTime.now(),
+                                    shopName: 'Tijori Jewellers (Pro Edition)',
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),

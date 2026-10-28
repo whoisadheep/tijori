@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,7 @@ import 'package:tijori/app/theme/app_colors.dart';
 import 'package:tijori/core/database/app_database.dart';
 import 'package:tijori/core/licensing/freemium_service.dart';
 import 'package:tijori/core/printing/slip_printer.dart';
+import 'package:tijori/core/utils/photo_storage_helper.dart';
 import 'package:tijori/features/parties/presentation/parties_providers.dart';
 
 import 'girvi_providers.dart';
@@ -377,6 +380,8 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
                                   color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
+                            const SizedBox(height: 12),
+                            _buildCollateralPhotoDetail(context, loan, colorScheme),
                           ],
                         ),
                       ),
@@ -764,6 +769,213 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCollateralPhotoDetail(
+    BuildContext context,
+    GirviLoan loan,
+    ColorScheme colorScheme,
+  ) {
+    final hasPhoto = PhotoStorageHelper.photoExists(loan.localPhotoPath);
+
+    if (hasPhoto) {
+      final file = File(loan.localPhotoPath!);
+      return Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.burntAmber.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => _showPhotoLightbox(context, loan.localPhotoPath!, loan.itemDescription),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      file,
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    right: 4,
+                    bottom: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Icon(
+                        Icons.fullscreen_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.verified_rounded,
+                        size: 14,
+                        color: AppColors.champagneDark,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Pledged Article Photo Stored',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppColors.champagneDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Embedded in thermal and A4 printed pledge slips.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        icon: const Icon(Icons.zoom_in_rounded, size: 16),
+                        label: const Text('Enlarge'),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        onPressed: () => _showPhotoLightbox(
+                          context,
+                          loan.localPhotoPath!,
+                          loan.itemDescription,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.refresh_rounded, size: 14),
+                        label: const Text('Replace'),
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        onPressed: () => _attachOrUpdatePhoto(loan),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return OutlinedButton.icon(
+      icon: const Icon(Icons.add_a_photo_outlined, size: 16),
+      label: const Text('Attach Collateral Ornament Photo'),
+      style: OutlinedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        foregroundColor: AppColors.burntAmber,
+        side: const BorderSide(color: AppColors.burntAmber),
+      ),
+      onPressed: () => _attachOrUpdatePhoto(loan),
+    );
+  }
+
+  Future<void> _attachOrUpdatePhoto(GirviLoan loan) async {
+    final path = await PhotoStorageHelper.pickAndSaveCollateralPhoto();
+    if (path != null && mounted) {
+      final dao = ref.read(girviLoansDaoProvider);
+      await dao.updateLoan(loan.copyWith(localPhotoPath: drift.Value(path)));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ornament photo updated successfully.')),
+        );
+      }
+    }
+  }
+
+  void _showPhotoLightbox(BuildContext context, String path, String title) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              constraints: const BoxConstraints(maxWidth: 800, maxHeight: 600),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.champagneGold, width: 2),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    color: Colors.black87,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, color: Colors.white),
+                          onPressed: () => Navigator.of(ctx).pop(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: InteractiveViewer(
+                      panEnabled: true,
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      child: Image.file(
+                        File(path),
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

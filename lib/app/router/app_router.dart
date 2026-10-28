@@ -7,6 +7,7 @@ import 'package:tijori/features/girvi/presentation/girvi_detail_screen.dart';
 import 'package:tijori/features/girvi/presentation/girvi_list_screen.dart';
 import 'package:tijori/features/girvi/presentation/new_girvi_loan_screen.dart';
 import 'package:tijori/features/gst/presentation/gst_screen.dart';
+import 'package:tijori/features/karigar/presentation/karigar_detail_screen.dart';
 import 'package:tijori/features/karigar/presentation/karigar_screen.dart';
 import 'package:tijori/features/parties/presentation/parties_screen.dart';
 import 'package:tijori/features/settings/presentation/settings_screen.dart';
@@ -63,6 +64,17 @@ GoRouter appRouter(AppRouterRef ref) {
             path: '/karigar',
             name: 'karigar',
             builder: (context, state) => const KarigarScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                name: 'karigar_detail',
+                builder: (context, state) {
+                  final idStr = state.pathParameters['id'] ?? '0';
+                  final karigarId = int.tryParse(idStr) ?? 0;
+                  return KarigarDetailScreen(karigarId: karigarId);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: '/gst',

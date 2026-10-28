@@ -6,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:tijori/core/database/app_database.dart';
+import 'package:tijori/core/utils/photo_storage_helper.dart';
 
 /// Thermal and A4 slip printing engine for Tijori Jewellery ERP.
 abstract final class SlipPrinter {
@@ -35,6 +36,8 @@ abstract final class SlipPrinter {
             marginAll: 4 * PdfPageFormat.mm,
           )
         : PdfPageFormat.a5;
+
+    final photoBytes = PhotoStorageHelper.readPhotoBytes(loan.localPhotoPath);
 
     pdf.addPage(
       pw.Page(
@@ -174,15 +177,41 @@ abstract final class SlipPrinter {
                 ],
               ),
               pw.SizedBox(height: 4),
-              pw.Text(
-                'Description: ${loan.itemDescription}',
-                style: const pw.TextStyle(fontSize: 8),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Description: ${loan.itemDescription}',
+                          style: const pw.TextStyle(fontSize: 8),
+                        ),
+                        if (loan.rackLocation != null && loan.rackLocation!.isNotEmpty)
+                          pw.Text(
+                            'Vault / Rack: ${loan.rackLocation}',
+                            style: const pw.TextStyle(fontSize: 8),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (photoBytes != null) ...[
+                    pw.SizedBox(width: 6),
+                    pw.Container(
+                      width: 44,
+                      height: 44,
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
+                      ),
+                      child: pw.Image(
+                        pw.MemoryImage(photoBytes),
+                        fit: pw.BoxFit.cover,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              if (loan.rackLocation != null && loan.rackLocation!.isNotEmpty)
-                pw.Text(
-                  'Vault / Rack: ${loan.rackLocation}',
-                  style: const pw.TextStyle(fontSize: 8),
-                ),
               pw.SizedBox(height: 6),
               pw.Divider(thickness: 0.5),
 
@@ -450,6 +479,218 @@ abstract final class SlipPrinter {
                     style: const pw.TextStyle(
                       fontSize: 7,
                       color: PdfColors.grey600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  /// Generates a PDF byte stream for a Karigar (Goldsmith) Metal Hisaab statement.
+  static Future<Uint8List> generateKarigarHisaabPdf({
+    required Party karigar,
+    required List<KarigarTransaction> transactions,
+    required double totalIssuedPure,
+    required double totalReceivedPure,
+    required double pendingPureBalance,
+    String? shopName,
+    String? watermarkText,
+    bool isThermal = true,
+  }) async {
+    final pdf = pw.Document();
+    final format = isThermal
+        ? const PdfPageFormat(
+            72 * PdfPageFormat.mm,
+            double.infinity,
+            marginAll: 4 * PdfPageFormat.mm,
+          )
+        : PdfPageFormat.a4;
+
+    final dateFmt = DateFormat('dd MMM yyyy');
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: format,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              pw.Center(
+                child: pw.Text(
+                  (shopName ?? 'TIJORI JEWELLERS').toUpperCase(),
+                  style: const pw.TextStyle(
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 2),
+              pw.Center(
+                child: pw.Text(
+                  'KARIGAR METAL HISAAB STATEMENT',
+                  style: const pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.brown900,
+                  ),
+                ),
+              ),
+              pw.Center(
+                child: pw.Text(
+                  'Date: ${dateFmt.format(DateTime.now())}',
+                  style: const pw.TextStyle(fontSize: 7),
+                ),
+              ),
+              pw.Divider(thickness: 0.5),
+
+              // Karigar Info
+              pw.Text(
+                'Artisan: ${karigar.name}',
+                style: const pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              if (karigar.mobile != null && karigar.mobile!.isNotEmpty)
+                pw.Text('Mobile: ${karigar.mobile}', style: const pw.TextStyle(fontSize: 8)),
+              if (karigar.address != null && karigar.address!.isNotEmpty)
+                pw.Text('Address: ${karigar.address}', style: const pw.TextStyle(fontSize: 8)),
+              pw.SizedBox(height: 6),
+
+              // Metal Balance Summary Box
+              pw.Container(
+                padding: const pw.EdgeInsets.all(6),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Total Pure Gold Issued:', style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text('${totalIssuedPure.toStringAsFixed(3)} g', style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                      ],
+                    ),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Total Pure Gold Received:', style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text('${totalReceivedPure.toStringAsFixed(3)} g', style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                      ],
+                    ),
+                    pw.Divider(thickness: 0.5),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(
+                          'NET BALANCE OUTSTANDING:',
+                          style: const pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+                        ),
+                        pw.Text(
+                          '${pendingPureBalance.toStringAsFixed(3)} g',
+                          style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    pw.Align(
+                      alignment: pw.Alignment.centerRight,
+                      child: pw.Text(
+                        pendingPureBalance > 0
+                            ? '(Artisan holds shop pure metal)'
+                            : (pendingPureBalance < 0
+                                ? '(Shop owes pure metal to artisan)'
+                                : '(Account Settled 0.000g)'),
+                        style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 8),
+
+              // Vouchers Table
+              pw.Text('RECENT JOB VOUCHERS', style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 2),
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                    children: [
+                      _th('Voucher'),
+                      _th('Type'),
+                      _th('Item'),
+                      _th('Gross (g)'),
+                      _th('Touch'),
+                      _th('Pure (g)'),
+                    ],
+                  ),
+                  ...transactions.take(15).map((t) {
+                    final isIssue = t.type == KarigarTxnType.issue;
+                    return pw.TableRow(
+                      children: [
+                        _td(t.voucherNumber),
+                        _td(isIssue ? 'ISSUE' : 'RCVD'),
+                        _td(t.itemDescription),
+                        _td('${t.grossWeight.toStringAsFixed(2)}g'),
+                        _td('${t.purityPercent.toStringAsFixed(1)}%'),
+                        _td('${t.netWeight.toStringAsFixed(3)}g'),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+              pw.SizedBox(height: 14),
+
+              // Signatures
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    children: [
+                      pw.Container(
+                        width: 80,
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(top: pw.BorderSide(color: PdfColors.black, width: 0.5)),
+                        ),
+                      ),
+                      pw.Text('Karigar Signature', style: const pw.TextStyle(fontSize: 7)),
+                    ],
+                  ),
+                  pw.Column(
+                    children: [
+                      pw.Container(
+                        width: 80,
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(top: pw.BorderSide(color: PdfColors.black, width: 0.5)),
+                        ),
+                      ),
+                      pw.Text('Authorized Signatory', style: const pw.TextStyle(fontSize: 7)),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 10),
+
+              // Watermark
+              if (watermarkText != null) ...[
+                pw.Divider(thickness: 0.5),
+                pw.Center(
+                  child: pw.Text(
+                    watermarkText.toUpperCase(),
+                    style: const pw.TextStyle(
+                      fontSize: 7,
+                      color: PdfColors.grey600,
+                      fontWeight: pw.FontWeight.bold,
                     ),
                   ),
                 ),
