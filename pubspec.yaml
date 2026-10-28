@@ -48,6 +48,7 @@ dependencies:
   freezed_annotation: ^3.0.0
   json_annotation: ^4.9.0
   uuid: ^4.5.1
+  sqlite3: ^2.9.4
 
 dev_dependencies:
   flutter_test:
@@ -60,7 +61,6 @@ dev_dependencies:
   json_serializable: ^6.9.5
   riverpod_lint: ^2.6.5
   mockito: ^5.4.6
-  sqlite3: ^2.9.4
 
 flutter:
   uses-material-design: true
