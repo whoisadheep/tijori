@@ -704,6 +704,234 @@ abstract final class SlipPrinter {
     return pdf.save();
   }
 
+  /// Generates a PDF byte stream for a GST Tax Invoice or Accounting Voucher.
+  static Future<Uint8List> generateGstInvoicePdf({
+    required GstVoucher voucher,
+    required Party party,
+    String? shopName,
+    String? shopAddress,
+    String? shopPhone,
+    String? shopGstin,
+    String? watermarkText,
+    bool isThermal = true,
+  }) async {
+    final pdf = pw.Document();
+    final format = isThermal
+        ? const PdfPageFormat(
+            72 * PdfPageFormat.mm,
+            double.infinity,
+            marginAll: 4 * PdfPageFormat.mm,
+          )
+        : PdfPageFormat.a4;
+
+    final dateFmt = DateFormat('dd MMM yyyy');
+    final isSale = voucher.voucherType == GstVoucherType.sale;
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: format,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              pw.Center(
+                child: pw.Text(
+                  (shopName ?? 'TIJORI JEWELLERS').toUpperCase(),
+                  style: const pw.TextStyle(
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (shopAddress != null && shopAddress.isNotEmpty)
+                pw.Center(
+                  child: pw.Text(
+                    shopAddress,
+                    textAlign: pw.TextAlign.center,
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ),
+              if (shopGstin != null && shopGstin.isNotEmpty)
+                pw.Center(
+                  child: pw.Text(
+                    'GSTIN: $shopGstin',
+                    style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                  ),
+                ),
+              pw.SizedBox(height: 3),
+              pw.Center(
+                child: pw.Text(
+                  isSale ? 'GST TAX INVOICE' : '${voucher.voucherType.name.toUpperCase()} VOUCHER',
+                  style: const pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.brown900,
+                  ),
+                ),
+              ),
+              pw.Divider(thickness: 0.5),
+
+              // Invoice & Customer Info
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Invoice #: ${voucher.billNumber}', style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('Date: ${dateFmt.format(voucher.date)}', style: const pw.TextStyle(fontSize: 8)),
+                ],
+              ),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Customer: ${party.name}', style: const pw.TextStyle(fontSize: 8)),
+                  pw.Text('Term: ${voucher.paymentTerm.name.toUpperCase()}', style: const pw.TextStyle(fontSize: 8)),
+                ],
+              ),
+              if (party.mobile != null && party.mobile!.isNotEmpty)
+                pw.Text('Mobile: ${party.mobile}', style: const pw.TextStyle(fontSize: 8)),
+              pw.SizedBox(height: 6),
+
+              // Items Table
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                    children: [
+                      _th('Description'),
+                      _th('HSN'),
+                      _th('Taxable'),
+                      _th('GST %'),
+                      _th('Total'),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      _td(voucher.description),
+                      _td(voucher.hsnCode ?? '7113'),
+                      _td(_currencyFormat.format(voucher.taxableAmount)),
+                      _td('${voucher.taxSlabPercent.toStringAsFixed(1)}%'),
+                      _td(_currencyFormat.format(voucher.totalAmount)),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 6),
+
+              // Tax Summary Box
+              pw.Container(
+                padding: const pw.EdgeInsets.all(6),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Taxable Value:', style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text(_currencyFormat.format(voucher.taxableAmount), style: const pw.TextStyle(fontSize: 8)),
+                      ],
+                    ),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('CGST (${(voucher.taxSlabPercent / 2).toStringAsFixed(1)}%):', style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text(_currencyFormat.format(voucher.cgstAmount), style: const pw.TextStyle(fontSize: 8)),
+                      ],
+                    ),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('SGST (${(voucher.taxSlabPercent / 2).toStringAsFixed(1)}%):', style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text(_currencyFormat.format(voucher.sgstAmount), style: const pw.TextStyle(fontSize: 8)),
+                      ],
+                    ),
+                    pw.Divider(thickness: 0.5),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(
+                          'GRAND TOTAL:',
+                          style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                        ),
+                        pw.Text(
+                          _currencyFormat.format(voucher.totalAmount),
+                          style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 10),
+
+              // Barcode
+              pw.Center(
+                child: pw.BarcodeWidget(
+                  barcode: pw.Barcode.code128(),
+                  data: voucher.billNumber,
+                  width: 110,
+                  height: 24,
+                  drawText: false,
+                ),
+              ),
+              pw.SizedBox(height: 10),
+
+              // Signature
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    children: [
+                      pw.Container(
+                        width: 75,
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(top: pw.BorderSide(color: PdfColors.black, width: 0.5)),
+                        ),
+                      ),
+                      pw.Text('Buyer Signature', style: const pw.TextStyle(fontSize: 7)),
+                    ],
+                  ),
+                  pw.Column(
+                    children: [
+                      pw.Container(
+                        width: 75,
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(top: pw.BorderSide(color: PdfColors.black, width: 0.5)),
+                        ),
+                      ),
+                      pw.Text('Authorized Signatory', style: const pw.TextStyle(fontSize: 7)),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 8),
+
+              // Watermark
+              if (watermarkText != null) ...[
+                pw.Divider(thickness: 0.5),
+                pw.Center(
+                  child: pw.Text(
+                    watermarkText.toUpperCase(),
+                    style: const pw.TextStyle(
+                      fontSize: 7,
+                      color: PdfColors.grey600,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
   /// Triggers standard cross-platform print preview dialog.
   static Future<void> printSlip(
     BuildContext context, {

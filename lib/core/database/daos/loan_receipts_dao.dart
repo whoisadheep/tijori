@@ -11,6 +11,13 @@ class LoanReceiptsDao extends DatabaseAccessor<AppDatabase>
     with _$LoanReceiptsDaoMixin {
   LoanReceiptsDao(super.db);
 
+  /// Watches all receipts across all loans, ordered by date descending.
+  Stream<List<LoanReceipt>> watchAllReceipts() {
+    return (select(loanReceipts)
+          ..orderBy([(t) => OrderingTerm.desc(t.date)]))
+        .watch();
+  }
+
   /// Watches all receipts for a given [loanId], ordered by date descending.
   Stream<List<LoanReceipt>> watchReceiptsForLoan(int loanId) {
     return (select(loanReceipts)
