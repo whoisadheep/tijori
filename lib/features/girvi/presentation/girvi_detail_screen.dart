@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:tijori/app/theme/app_colors.dart';
 import 'package:tijori/core/database/app_database.dart';
 import 'package:tijori/core/licensing/freemium_service.dart';
 import 'package:tijori/core/printing/slip_printer.dart';
@@ -164,7 +165,7 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.teal),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.champagneDark),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Confirm Loan Closure'),
           ),
@@ -218,17 +219,22 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                 decoration: BoxDecoration(
                   color: isClosed
-                      ? Colors.teal.shade100
-                      : colorScheme.primaryContainer,
+                      ? AppColors.champagneLight
+                      : AppColors.burntAmberLight,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isClosed
+                        ? AppColors.champagneBorder
+                        : AppColors.burntAmber.withValues(alpha: 0.5),
+                  ),
                 ),
                 child: Center(
                   child: Text(
                     loan.status.name.toUpperCase(),
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: isClosed
-                          ? Colors.teal.shade900
-                          : colorScheme.onPrimaryContainer,
+                          ? AppColors.champagneDark
+                          : AppColors.burntAmberDark,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -484,7 +490,7 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
                                         context,
                                         'Pending Interest Due',
                                         _currencyFmt.format(ledger.pendingInterest),
-                                        color: Colors.deepOrange.shade700,
+                                        color: AppColors.burntAmber,
                                         isBold: true,
                                       ),
                                     ),
@@ -499,7 +505,7 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
                                     color: colorScheme.surface,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: colorScheme.primary,
+                                      color: AppColors.burntAmber,
                                       width: 1.5,
                                     ),
                                   ),
@@ -624,16 +630,16 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
                               child: ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: isInterest
-                                      ? Colors.amber.shade100
-                                      : Colors.green.shade100,
+                                      ? AppColors.champagneLight
+                                      : AppColors.burntAmberLight,
                                   child: Icon(
                                     isInterest
                                         ? Icons.percent_rounded
                                         : Icons.account_balance_wallet_rounded,
                                     size: 18,
                                     color: isInterest
-                                        ? Colors.amber.shade900
-                                        : Colors.green.shade900,
+                                        ? AppColors.champagneDark
+                                        : AppColors.burntAmberDark,
                                   ),
                                 ),
                                 title: Text(

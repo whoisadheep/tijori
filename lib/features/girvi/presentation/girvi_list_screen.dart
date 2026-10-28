@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:tijori/app/theme/app_colors.dart';
 import 'package:tijori/core/database/app_database.dart';
 import 'package:tijori/features/parties/presentation/parties_providers.dart';
 
@@ -83,7 +84,7 @@ class _GirviListScreenState extends ConsumerState<GirviListScreen> {
                   'Vault Gold Wt',
                   '${stats.totalGoldGrossWeight.toStringAsFixed(2)} g',
                   icon: Icons.circle,
-                  iconColor: Colors.amber.shade700,
+                  iconColor: AppColors.champagneGold,
                 ),
                 const SizedBox(width: 24),
                 _buildStatItem(
@@ -91,7 +92,7 @@ class _GirviListScreenState extends ConsumerState<GirviListScreen> {
                   'Vault Silver Wt',
                   '${stats.totalSilverGrossWeight.toStringAsFixed(2)} g',
                   icon: Icons.circle,
-                  iconColor: Colors.blueGrey,
+                  iconColor: AppColors.silverRate,
                 ),
               ],
             ),
@@ -223,13 +224,13 @@ class _GirviListScreenState extends ConsumerState<GirviListScreen> {
                               CircleAvatar(
                                 radius: 22,
                                 backgroundColor: isGold
-                                    ? Colors.amber.shade100
-                                    : Colors.blueGrey.shade100,
+                                    ? AppColors.champagneLight
+                                    : AppColors.mochaLight,
                                 child: Icon(
                                   Icons.diamond_rounded,
                                   color: isGold
-                                      ? Colors.amber.shade900
-                                      : Colors.blueGrey.shade900,
+                                      ? AppColors.champagneDark
+                                      : AppColors.mochaPrimary,
                                   size: 20,
                                 ),
                               ),

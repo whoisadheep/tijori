@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:tijori/app/theme/app_colors.dart';
 import 'package:tijori/core/licensing/freemium_service.dart';
 import 'package:tijori/core/licensing/upgrade_paywall_dialog.dart';
 import 'package:tijori/core/updater/ota_update_service.dart';
@@ -79,12 +80,23 @@ class AdaptiveShell extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: colorScheme.primary,
+                        gradient: const LinearGradient(
+                          colors: [AppColors.champagneGold, AppColors.burntAmber],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.burntAmber.withValues(alpha: 0.35),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.shield_rounded,
-                        color: colorScheme.onPrimary,
+                        color: AppColors.champagneOn,
                         size: 26,
                       ),
                     ),
@@ -94,14 +106,14 @@ class AdaptiveShell extends ConsumerWidget {
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.5,
-                        color: colorScheme.primary,
+                        color: AppColors.champagneGlow,
                       ),
                     ),
                     Text(
                       'ERP',
                       style: theme.textTheme.labelSmall?.copyWith(
                         letterSpacing: 2,
-                        color: colorScheme.outline,
+                        color: AppColors.burntAmber,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -130,13 +142,13 @@ class AdaptiveShell extends ConsumerWidget {
                         ),
                         decoration: BoxDecoration(
                           color: license.effectiveTier.isPaid
-                              ? Colors.amber.shade100
-                              : colorScheme.surfaceContainerHighest,
+                              ? AppColors.champagneLight
+                              : AppColors.burntAmberLight,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: license.effectiveTier.isPaid
-                                ? Colors.amber.shade800
-                                : colorScheme.outlineVariant,
+                                ? AppColors.champagneBorder
+                                : AppColors.burntAmber.withValues(alpha: 0.6),
                           ),
                         ),
                         child: Text(
@@ -145,8 +157,8 @@ class AdaptiveShell extends ConsumerWidget {
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                             color: license.effectiveTier.isPaid
-                                ? Colors.amber.shade900
-                                : colorScheme.onSurfaceVariant,
+                                ? AppColors.champagneDark
+                                : AppColors.burntAmberDark,
                           ),
                         ),
                       ),
@@ -258,7 +270,7 @@ class AdaptiveShell extends ConsumerWidget {
                                             rate.gold24k != null
                                                 ? '₹${rate.gold24k!.toStringAsFixed(0)}'
                                                 : '—',
-                                            Colors.amber.shade900,
+                                            AppColors.champagneDark,
                                           ),
                                           const SizedBox(width: 10),
                                           _buildHeaderRatePill(
@@ -266,7 +278,7 @@ class AdaptiveShell extends ConsumerWidget {
                                             rate.gold22k != null
                                                 ? '₹${rate.gold22k!.toStringAsFixed(0)}'
                                                 : '—',
-                                            Colors.amber.shade800,
+                                            AppColors.champagneGold,
                                           ),
                                           const SizedBox(width: 10),
                                           _buildHeaderRatePill(
@@ -274,7 +286,7 @@ class AdaptiveShell extends ConsumerWidget {
                                             rate.silverRate != null
                                                 ? '₹${rate.silverRate!.toStringAsFixed(1)}'
                                                 : '—',
-                                            Colors.blueGrey.shade800,
+                                            AppColors.silverRate,
                                           ),
                                           const SizedBox(width: 8),
                                           Icon(
@@ -303,9 +315,9 @@ class AdaptiveShell extends ConsumerWidget {
                                 UpdateStatus.mandatoryUpdateRequired) ...[
                           IconButton(
                             tooltip: 'New Software Update Available',
-                            icon: Icon(
+                            icon: const Icon(
                               Icons.new_releases_rounded,
-                              color: colorScheme.primary,
+                              color: AppColors.burntAmber,
                             ),
                             onPressed: () => context.go('/settings'),
                           ),
@@ -320,14 +332,25 @@ class AdaptiveShell extends ConsumerWidget {
                                 : Icons.lock_outline_rounded,
                             size: 16,
                             color: license.effectiveTier.isPaid
-                                ? Colors.amber.shade800
-                                : colorScheme.onSurfaceVariant,
+                                ? AppColors.champagneDark
+                                : AppColors.burntAmber,
+                          ),
+                          backgroundColor: license.effectiveTier.isPaid
+                              ? AppColors.champagneLight
+                              : AppColors.burntAmberLight,
+                          side: BorderSide(
+                            color: license.effectiveTier.isPaid
+                                ? AppColors.champagneBorder
+                                : AppColors.burntAmber.withValues(alpha: 0.5),
                           ),
                           label: Text(
                             license.effectiveTier.displayName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
+                              color: license.effectiveTier.isPaid
+                                  ? AppColors.champagneDark
+                                  : AppColors.burntAmberDark,
                             ),
                           ),
                           onPressed: () {

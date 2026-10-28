@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:tijori/app/theme/app_colors.dart';
 import 'package:tijori/core/database/app_database.dart';
 import 'package:tijori/features/daily_rates/presentation/daily_rates_providers.dart';
 import 'package:tijori/features/daily_rates/presentation/update_rates_dialog.dart';
@@ -44,7 +45,7 @@ class DashboardScreen extends ConsumerWidget {
             value: currencyFmt.format(stats.totalPrincipal),
             subtitle: '${stats.activeLoansCount} active customer loans',
             icon: Icons.account_balance_wallet_rounded,
-            color: colorScheme.primary,
+            color: AppColors.mochaPrimary,
           );
 
           final card2 = _buildMetricCard(
@@ -53,7 +54,7 @@ class DashboardScreen extends ConsumerWidget {
             value: currencyFmt.format(stats.totalEstimatedValuation),
             subtitle: 'Estimated metal market value',
             icon: Icons.shield_rounded,
-            color: Colors.teal.shade700,
+            color: AppColors.champagneDark,
           );
 
           final card3 = _buildMetricCard(
@@ -62,7 +63,7 @@ class DashboardScreen extends ConsumerWidget {
             value: '${stats.totalGoldGrossWeight.toStringAsFixed(2)} g',
             subtitle: 'Vault inventory weight',
             icon: Icons.circle,
-            color: Colors.amber.shade800,
+            color: AppColors.champagneGold,
           );
 
           final card4 = _buildMetricCard(
@@ -71,7 +72,7 @@ class DashboardScreen extends ConsumerWidget {
             value: '${stats.totalSilverGrossWeight.toStringAsFixed(2)} g',
             subtitle: 'Vault inventory weight',
             icon: Icons.circle,
-            color: Colors.blueGrey.shade700,
+            color: AppColors.silverRate,
           );
 
           final ratesCard = Card(
@@ -190,14 +191,14 @@ class DashboardScreen extends ConsumerWidget {
                             leading: CircleAvatar(
                               radius: 18,
                               backgroundColor: loan.metalType == MetalType.gold
-                                  ? Colors.amber.shade100
-                                  : Colors.blueGrey.shade100,
+                                  ? AppColors.champagneLight
+                                  : AppColors.mochaLight,
                               child: Icon(
                                 Icons.diamond_rounded,
                                 size: 16,
                                 color: loan.metalType == MetalType.gold
-                                    ? Colors.amber.shade900
-                                    : Colors.blueGrey.shade900,
+                                    ? AppColors.champagneDark
+                                    : AppColors.mochaPrimary,
                               ),
                             ),
                             title: Text(
@@ -240,6 +241,8 @@ class DashboardScreen extends ConsumerWidget {
                       icon: const Icon(Icons.add_circle_outline_rounded),
                       label: const Text('New Girvi Pledge'),
                       style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.burntAmber,
+                        foregroundColor: AppColors.burntAmberOn,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 16,

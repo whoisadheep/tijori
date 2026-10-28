@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:tijori/app/theme/app_colors.dart';
+import 'package:tijori/app/theme/theme_mode_provider.dart';
 import 'package:tijori/core/licensing/freemium_service.dart';
 import 'package:tijori/core/licensing/upgrade_paywall_dialog.dart';
 import 'package:tijori/core/updater/update_checker_widget.dart';
@@ -16,6 +18,7 @@ class SettingsScreen extends ConsumerWidget {
 
     final license = ref.watch(freemiumProvider);
     final freemiumNotifier = ref.read(freemiumProvider.notifier);
+    final currentThemeMode = ref.watch(themeModeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,7 +32,126 @@ class SettingsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. License & Subscription Card
+                // 1. Appearance & Color Theme Card
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: colorScheme.outlineVariant),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.palette_rounded,
+                                  color: AppColors.burntAmber,
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Appearance & Color Theme',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.champagneLight,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AppColors.champagneBorder,
+                                ),
+                              ),
+                              child: const Text(
+                                'JEWELLERY PALETTE',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.champagneDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+
+                        // Color swatch preview row
+                        Row(
+                          children: [
+                            _buildColorSwatch(
+                              'Mocha Brown',
+                              AppColors.mochaPrimary,
+                              'Grounding Luxury',
+                            ),
+                            const SizedBox(width: 12),
+                            _buildColorSwatch(
+                              'Champagne Gold',
+                              AppColors.champagneGold,
+                              'Metallic Elegance',
+                            ),
+                            const SizedBox(width: 12),
+                            _buildColorSwatch(
+                              'Burnt Amber',
+                              AppColors.burntAmber,
+                              'Highlight & CTA',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        Text(
+                          'Theme Mode',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        SegmentedButton<ThemeMode>(
+                          segments: const [
+                            ButtonSegment<ThemeMode>(
+                              value: ThemeMode.light,
+                              label: Text('Mocha Light'),
+                              icon: Icon(Icons.wb_sunny_rounded),
+                            ),
+                            ButtonSegment<ThemeMode>(
+                              value: ThemeMode.dark,
+                              label: Text('Mocha Dark'),
+                              icon: Icon(Icons.nightlight_round),
+                            ),
+                            ButtonSegment<ThemeMode>(
+                              value: ThemeMode.system,
+                              label: Text('System'),
+                              icon: Icon(Icons.settings_suggest_rounded),
+                            ),
+                          ],
+                          selected: {currentThemeMode},
+                          onSelectionChanged: (selection) {
+                            ref
+                                .read(themeModeProvider.notifier)
+                                .setThemeMode(selection.first);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 2. License & Subscription Card
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -66,13 +188,13 @@ class SettingsScreen extends ConsumerWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: license.effectiveTier.isPaid
-                                    ? Colors.amber.shade100
-                                    : colorScheme.surfaceContainerHighest,
+                                    ? AppColors.champagneLight
+                                    : AppColors.burntAmberLight,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: license.effectiveTier.isPaid
-                                      ? Colors.amber.shade800
-                                      : colorScheme.outlineVariant,
+                                      ? AppColors.champagneBorder
+                                      : AppColors.burntAmber.withValues(alpha: 0.5),
                                 ),
                               ),
                               child: Text(
@@ -81,8 +203,8 @@ class SettingsScreen extends ConsumerWidget {
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: license.effectiveTier.isPaid
-                                      ? Colors.amber.shade900
-                                      : colorScheme.onSurfaceVariant,
+                                      ? AppColors.champagneDark
+                                      : AppColors.burntAmberDark,
                                 ),
                               ),
                             ),
@@ -198,6 +320,59 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorSwatch(String name, Color color, String role) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+          color: color.withValues(alpha: 0.08),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              role,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
         ),
       ),
     );
