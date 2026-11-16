@@ -112,6 +112,15 @@ class OtaUpdateNotifier extends Notifier<UpdateState> {
         versionConfig: versionConfig,
       );
 
+      final targetUrl = _getPlatformDownloadUrl(releaseInfo);
+      if (targetUrl == null) {
+        state = state.copyWith(
+          status: UpdateStatus.upToDate,
+          releaseInfo: releaseInfo,
+        );
+        return;
+      }
+
       final latestVer = SemanticVersion.parse(releaseInfo.latestVersion);
       final minRequiredVer =
           SemanticVersion.parse(releaseInfo.minRequiredVersion);
@@ -134,6 +143,17 @@ class OtaUpdateNotifier extends Notifier<UpdateState> {
         );
       }
     } on DioException catch (dioErr) {
+      if (dioErr.response?.statusCode == 404) {
+        // Repository has no releases published yet
+        state = state.copyWith(status: UpdateStatus.upToDate);
+        return;
+      }
+      if (dioErr.type == DioExceptionType.connectionError ||
+          dioErr.type == DioExceptionType.connectionTimeout) {
+        // Offline / disconnected - silently remain in idle state without raising alarms
+        state = state.copyWith(status: UpdateStatus.idle);
+        return;
+      }
       final msg = dioErr.response?.statusCode == 403
           ? 'GitHub rate limit exceeded. Please try again later.'
           : 'Network error checking for updates: ${dioErr.message}';
@@ -170,25 +190,27 @@ class OtaUpdateNotifier extends Notifier<UpdateState> {
     state = state.copyWith(
       status: UpdateStatus.downloading,
       downloadProgress: 0.0,
+      downloadedFilePath: null,
       errorMessage: null,
     );
 
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final uri = Uri.parse(targetUrl);
-      final rawFileName = p.basename(uri.path);
-      final fileName = rawFileName.isNotEmpty ? rawFileName : _defaultInstallerName();
-      final savePath = p.join(tempDir.path, fileName);
+    final tempDir = await getTemporaryDirectory();
+    final uri = Uri.parse(targetUrl);
+    final rawFileName = p.basename(uri.path);
+    final fileName = rawFileName.isNotEmpty ? rawFileName : _defaultInstallerName();
+    final savePath = p.join(tempDir.path, fileName);
+    final partPath = '$savePath.part';
 
-      // Remove any incomplete previous download
-      final file = File(savePath);
-      if (await file.exists()) {
-        await file.delete();
+    try {
+      // Remove any incomplete previous download part or file
+      final partFile = File(partPath);
+      if (await partFile.exists()) {
+        await partFile.delete();
       }
 
       await _dio.download(
         targetUrl,
-        savePath,
+        partPath,
         cancelToken: _cancelToken,
         onReceiveProgress: (received, total) {
           if (total > 0) {
@@ -198,15 +220,32 @@ class OtaUpdateNotifier extends Notifier<UpdateState> {
         },
       );
 
+      // Verify file integrity
+      if (!await partFile.exists() || await partFile.length() < 1024) {
+        throw 'Downloaded package is invalid or corrupted.';
+      }
+
+      final finalFile = File(savePath);
+      if (await finalFile.exists()) {
+        await finalFile.delete();
+      }
+      await partFile.rename(savePath);
+
       state = state.copyWith(
         status: UpdateStatus.readyToInstall,
         downloadedFilePath: savePath,
         downloadProgress: 1.0,
       );
     } on DioException catch (e) {
+      // Clean up partial file
+      try {
+        final partFile = File(partPath);
+        if (await partFile.exists()) await partFile.delete();
+      } catch (_) {}
+
       if (CancelToken.isCancel(e)) {
         state = state.copyWith(
-          status: UpdateStatus.updateAvailable,
+          status: _resolvePostCancelStatus(),
           downloadProgress: 0.0,
         );
       } else {
@@ -216,6 +255,11 @@ class OtaUpdateNotifier extends Notifier<UpdateState> {
         );
       }
     } catch (e) {
+      try {
+        final partFile = File(partPath);
+        if (await partFile.exists()) await partFile.delete();
+      } catch (_) {}
+
       state = state.copyWith(
         status: UpdateStatus.error,
         errorMessage: 'An error occurred during installer download: $e',
@@ -223,11 +267,23 @@ class OtaUpdateNotifier extends Notifier<UpdateState> {
     }
   }
 
+  /// Resolves status after download cancellation without downgrading mandatory update.
+  UpdateStatus _resolvePostCancelStatus() {
+    final info = state.releaseInfo;
+    if (info != null && state.currentVersion != null) {
+      final minReq = SemanticVersion.parse(info.minRequiredVersion);
+      if (state.currentVersion! < minReq) {
+        return UpdateStatus.mandatoryUpdateRequired;
+      }
+    }
+    return UpdateStatus.updateAvailable;
+  }
+
   /// Cancels an in-progress download.
   void cancelDownload() {
     _cancelToken?.cancel('Cancelled by user');
     state = state.copyWith(
-      status: UpdateStatus.updateAvailable,
+      status: _resolvePostCancelStatus(),
       downloadProgress: 0.0,
     );
   }

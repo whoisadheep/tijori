@@ -5,6 +5,7 @@ import 'package:tijori/app/theme/app_colors.dart';
 import 'package:tijori/core/licensing/freemium_service.dart';
 import 'package:tijori/core/licensing/upgrade_paywall_dialog.dart';
 import 'package:tijori/core/updater/ota_update_service.dart';
+import 'package:tijori/core/updater/update_checker_widget.dart';
 import 'package:tijori/features/daily_rates/presentation/daily_rates_providers.dart';
 import 'package:tijori/features/daily_rates/presentation/update_rates_dialog.dart';
 
@@ -64,8 +65,9 @@ class AdaptiveShell extends ConsumerWidget {
     final license = ref.watch(freemiumProvider);
     final otaState = ref.watch(otaUpdateProvider);
 
+    final Widget shellContent;
     if (isDesktop) {
-      return Scaffold(
+      shellContent = Scaffold(
         body: Row(
           children: [
             // Left Desktop Navigation Sidebar
@@ -376,37 +378,55 @@ class AdaptiveShell extends ConsumerWidget {
           ],
         ),
       );
+    } else {
+      // Mobile / Tablet View
+      shellContent = Scaffold(
+        body: child,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: selectedIndex > 3 ? 0 : selectedIndex,
+          onDestinationSelected: (idx) => _onItemTapped(idx, context),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard_rounded),
+              label: 'Overview',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.account_balance_outlined),
+              selectedIcon: Icon(Icons.account_balance_rounded),
+              label: 'Girvi',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.price_change_outlined),
+              selectedIcon: Icon(Icons.price_change_rounded),
+              label: 'Rates',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings_rounded),
+              label: 'Settings',
+            ),
+          ],
+        ),
+      );
     }
 
-    // Mobile / Tablet View
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex > 3 ? 0 : selectedIndex,
-        onDestinationSelected: (idx) => _onItemTapped(idx, context),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: 'Overview',
+    if (!otaState.isMandatory) {
+      return shellContent;
+    }
+
+    return Stack(
+      children: [
+        shellContent,
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.65),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.all(24),
+            child: const MandatoryUpdateDialog(),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.account_balance_outlined),
-            selectedIcon: Icon(Icons.account_balance_rounded),
-            label: 'Girvi',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.price_change_outlined),
-            selectedIcon: Icon(Icons.price_change_rounded),
-            label: 'Rates',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_rounded),
-            label: 'Settings',
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

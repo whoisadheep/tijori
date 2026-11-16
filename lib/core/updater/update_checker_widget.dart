@@ -310,6 +310,31 @@ class MandatoryUpdateDialog extends ConsumerWidget {
                 ),
               ),
             ],
+            if (state.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline_rounded,
+                        size: 16, color: colorScheme.onErrorContainer),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        state.errorMessage!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             if (state.status == UpdateStatus.downloading) ...[
               LinearProgressIndicator(value: state.downloadProgress),
@@ -324,6 +349,11 @@ class MandatoryUpdateDialog extends ConsumerWidget {
           ],
         ),
         actions: [
+          if (state.status == UpdateStatus.downloading)
+            OutlinedButton(
+              onPressed: () => notifier.cancelDownload(),
+              child: const Text('Cancel Download'),
+            ),
           if (state.status == UpdateStatus.readyToInstall)
             FilledButton.icon(
               icon: const Icon(Icons.install_mobile_rounded),
@@ -333,7 +363,9 @@ class MandatoryUpdateDialog extends ConsumerWidget {
           else if (state.status != UpdateStatus.downloading)
             FilledButton.icon(
               icon: const Icon(Icons.download_rounded),
-              label: const Text('Download Update Now'),
+              label: Text(state.status == UpdateStatus.error
+                  ? 'Retry Download'
+                  : 'Download Update Now'),
               onPressed: () => notifier.downloadUpdate(),
             ),
         ],

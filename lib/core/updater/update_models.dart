@@ -55,6 +55,15 @@ class SemanticVersion implements Comparable<SemanticVersion> {
     if (minor != other.minor) return minor.compareTo(other.minor);
     if (patch != other.patch) return patch.compareTo(other.patch);
     if (build != other.build) return build.compareTo(other.build);
+
+    // SemVer 2.0.0: Pre-release has LOWER precedence than a normal release.
+    // e.g. 1.0.0-alpha < 1.0.0
+    if (preRelease != null && other.preRelease == null) return -1;
+    if (preRelease == null && other.preRelease != null) return 1;
+    if (preRelease != null && other.preRelease != null) {
+      return preRelease!.compareTo(other.preRelease!);
+    }
+
     return 0;
   }
 
@@ -70,14 +79,15 @@ class SemanticVersion implements Comparable<SemanticVersion> {
           major == other.major &&
           minor == other.minor &&
           patch == other.patch &&
-          build == other.build;
+          build == other.build &&
+          preRelease == other.preRelease;
 
   @override
-  int get hashCode => Object.hash(major, minor, patch, build);
+  int get hashCode => Object.hash(major, minor, patch, build, preRelease);
 
   @override
   String toString() {
-    final base = '$major.$minor.$patch';
+    final base = preRelease != null ? '$major.$minor.$patch-$preRelease' : '$major.$minor.$patch';
     return build > 0 ? '$base+$build' : base;
   }
 }
@@ -180,6 +190,17 @@ class UpdateState {
     this.errorMessage,
     this.currentVersion,
   });
+
+  /// True if current installed version is lower than minimum required version
+  /// or if status explicitly flags a mandatory update.
+  bool get isMandatory {
+    if (status == UpdateStatus.mandatoryUpdateRequired) return true;
+    if (releaseInfo != null && currentVersion != null) {
+      final minReq = SemanticVersion.parse(releaseInfo!.minRequiredVersion);
+      return currentVersion! < minReq;
+    }
+    return false;
+  }
 
   UpdateState copyWith({
     UpdateStatus? status,
