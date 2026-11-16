@@ -1,0 +1,125 @@
+name: Build Windows MSI & EXE Installer
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'lib/**'
+      - 'windows/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/build_windows_installer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Package Windows Desktop Installers
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Packaging Tools (WiX & Inno Setup)
+        shell: powershell
+        run: |
+          choco install wixtoolset innosetup -y --no-progress
+          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Windows Application
+        run: flutter build windows --release
+
+      - name: Download Visual C++ Redistributable & Stage CRT DLLs
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          $releaseDir = "build\windows\x64\runner\Release"
+
+          # 1. Download official Microsoft VC++ 2015-2022 x64 Redistributable
+          $vcredistUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+          Write-Host "Downloading Visual C++ Redistributable from $vcredistUrl..."
+          Invoke-WebRequest -Uri $vcredistUrl -OutFile "windows\installer\vc_redist.x64.exe"
+          Copy-Item -Path "windows\installer\vc_redist.x64.exe" -Destination "$releaseDir\vc_redist.x64.exe"
+
+          # 2. Extract & bundle Visual C++ CRT runtime DLLs directly into app folder for local portability
+          $crtPaths = Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC" -Recurse -Filter "Microsoft.VC143.CRT" -ErrorAction SilentlyContinue
+          if ($crtPaths) {
+            $crtDir = ($crtPaths | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1).FullName
+            Write-Host "Bundling MSVC CRT DLLs from $crtDir..."
+            Copy-Item -Path "$crtDir\*.dll" -Destination $releaseDir -Force
+          }
+
+          Get-ChildItem -Path $releaseDir
+
+      - name: Build WiX Native MSI Installer
+        shell: powershell
+        run: |
+          $releaseDir = "build\windows\x64\runner\Release"
+          Write-Host "Harvesting application files with WiX Heat..."
+          heat dir $releaseDir -cg AppFiles -dr INSTALLFOLDER -scom -sreg -srd -gg -var var.SourceDir -out AppFiles.wxs
+
+          Write-Host "Compiling WiX manifests..."
+          candle -arch x64 -dSourceDir=$releaseDir -ext WixUIExtension windows\installer\Product.wxs AppFiles.wxs
+
+          Write-Host "Linking MSI package..."
+          light -ext WixUIExtension -out dist\Tijori_v1.0.0_Setup_x64.msi Product.wixobj AppFiles.wixobj
+
+      - name: Build Inno Setup Executable Installer
+        shell: powershell
+        run: |
+          Write-Host "Compiling Inno Setup EXE installer..."
+          ISCC.exe windows\installer\tijori_setup.iss
+
+      - name: Generate Release Manifest version.json
+        shell: powershell
+        run: |
+          $manifest = @{
+            latest_version = "1.0.0"
+            min_required_version = "1.0.0"
+            changelog = "Official production Windows release with bundled Visual C++ Redistributable and offline SQLite engine."
+            windows_url = "https://github.com/whoisadheep/tijori/releases/download/v1.0.0/Tijori_v1.0.0_Setup_x64.msi"
+          }
+          $manifest | ConvertTo-Json -Depth 3 | Out-File -FilePath dist\version.json -Encoding utf8
+
+      - name: Upload Installer Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: |
+            dist/*.msi
+            dist/*.exe
+            dist/version.json
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/master'
+        with:
+          tag_name: v1.0.0
+          name: "Tijori Jewellery ERP v1.0.0 (Windows Installer)"
+          body: |
+            ## Tijori Jewellery ERP — Official Windows Release v1.0.0
+            
+            ### Included in this release:
+            - **Microsoft Windows Installer (`.msi`)**: `Tijori_v1.0.0_Setup_x64.msi`
+            - **Windows Setup Wizard (`.exe`)**: `Tijori_v1.0.0_Setup_x64.exe`
+            - **Bundled Visual C++ Redistributable**: Bundles Microsoft Visual C++ 2015–2022 runtime libraries (`msvcp140.dll`, `vcruntime140.dll`, `vc_redist.x64.exe`) ensuring zero missing DLL errors.
+            - **Offline-First SQLite**: Embedded 64-bit SQLite engine (`sqlite3.dll`).
+            - **OTA Auto-Updater**: Automatic update checks linked to this repository.
+          files: |
+            dist/*.msi
+            dist/*.exe
+            dist/version.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

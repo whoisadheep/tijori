@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" 
+           Name="Tijori Jewellery ERP" 
+           Language="1033" 
+           Version="1.0.0.0" 
+           Manufacturer="Tijori" 
+           UpgradeCode="4D68B4F9-3B1B-4A12-87F9-5369A1C81389">
+    
+    <Package InstallerVersion="301" 
+             Compressed="yes" 
+             InstallScope="perMachine" 
+             Platform="x64" 
+             Description="Tijori Jewellery Girvi, Karigar, &amp; Accounting ERP" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="windows\runner\resources\app_icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/whoisadheep/tijori" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/whoisadheep/tijori" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="Tijori ERP" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Tijori ERP" />
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="7C8159E1-7299-4A9B-B851-C1CEB834F181">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="Tijori ERP"
+                  Description="Offline-First Jewellery Girvi, Karigar and Accounting ERP"
+                  Target="[INSTALLFOLDER]tijori.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\Tijori\ERP" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="ApplicationDesktopShortcut" Guid="2A197D6C-9C52-475D-9132-F519C6A37F55">
+        <Shortcut Id="AppDesktopShortcut"
+                  Name="Tijori ERP"
+                  Description="Offline-First Jewellery Girvi, Karigar and Accounting ERP"
+                  Target="[INSTALLFOLDER]tijori.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RegistryValue Root="HKCU" Key="Software\Tijori\ERP" Name="desktop_shortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="ProductFeature" Title="Tijori ERP" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="ApplicationShortcut" />
+      <ComponentRef Id="ApplicationDesktopShortcut" />
+    </Feature>
+
+    <UIRef Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="windows\installer\License.rtf" />
+  </Product>
+</Wix>
