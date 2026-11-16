@@ -66,15 +66,15 @@ jobs:
       - name: Build WiX Native MSI Installer
         shell: powershell
         run: |
-          $releaseDir = "build\windows\x64\runner\Release"
-          Write-Host "Harvesting application files with WiX Heat..."
-          heat dir $releaseDir -cg AppFiles -dr INSTALLFOLDER -scom -sreg -srd -gg -var var.SourceDir -out AppFiles.wxs
+          $releaseDir = (Resolve-Path "build\windows\x64\runner\Release").Path
+          Write-Host "Harvesting application files with WiX Heat from $releaseDir..."
+          heat dir "$releaseDir" -cg AppFiles -dr INSTALLFOLDER -scom -sreg -srd -gg -var var.SourceDir -out AppFiles.wxs
 
           Write-Host "Compiling WiX manifests..."
-          candle -arch x64 -dSourceDir=$releaseDir -ext WixUIExtension windows\installer\Product.wxs AppFiles.wxs
+          candle -arch x64 "-dSourceDir=$releaseDir" -ext WixUIExtension windows\installer\Product.wxs AppFiles.wxs
 
           Write-Host "Linking MSI package..."
-          light -ext WixUIExtension -out dist\Tijori_v1.0.0_Setup_x64.msi Product.wixobj AppFiles.wixobj
+          light -sval -ext WixUIExtension -b "$releaseDir" -out dist\Tijori_v1.0.0_Setup_x64.msi Product.wixobj AppFiles.wixobj
 
       - name: Build Inno Setup Executable Installer
         shell: powershell
