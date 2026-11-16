@@ -57,13 +57,16 @@ class KarigarMetalSummary {
       }
     }
 
+    final diff = issuedPure - receivedPure;
+    final cleanDiff = diff.abs() < 0.0001 ? 0.0 : double.parse(diff.toStringAsFixed(4));
+
     return KarigarMetalSummary(
       karigarId: karigarId,
-      totalIssuedGross: issuedGross,
-      totalIssuedPure: issuedPure,
-      totalReceivedGross: receivedGross,
-      totalReceivedPure: receivedPure,
-      pendingPureBalance: issuedPure - receivedPure,
+      totalIssuedGross: double.parse(issuedGross.toStringAsFixed(4)),
+      totalIssuedPure: double.parse(issuedPure.toStringAsFixed(4)),
+      totalReceivedGross: double.parse(receivedGross.toStringAsFixed(4)),
+      totalReceivedPure: double.parse(receivedPure.toStringAsFixed(4)),
+      pendingPureBalance: cleanDiff,
       transactionCount: txns.length,
     );
   }

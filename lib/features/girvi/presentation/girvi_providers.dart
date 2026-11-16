@@ -56,12 +56,17 @@ final loanLedgerProvider =
               ? calc.InterestType.dayWise
               : calc.InterestType.monthWise;
 
+          // For closed loans, cap calculation date at the latest receipt date to prevent indefinite accrual
+          final calcDate = loan.status == LoanStatus.closed && entries.isNotEmpty
+              ? entries.map((e) => e.date).reduce((a, b) => a.isAfter(b) ? a : b)
+              : DateTime.now();
+
           final ledger = GirviCalculator.computeLoanLedger(
             initialPrincipal: loan.principalAmount,
             roi: loan.roi,
             interestType: calcInterestType,
             interestStartDate: loan.interestStartDate,
-            calculationDate: DateTime.now(),
+            calculationDate: calcDate,
             receipts: entries,
           );
 

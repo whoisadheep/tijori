@@ -1,8 +1,8 @@
 /// Application-wide constants.
 abstract final class AppConstants {
   /// GitHub repository for OTA updates.
-  static const String githubOwner = 'tijori-app';
-  static const String githubRepo = 'tijori-releases';
+  static const String githubOwner = 'whoisadheep';
+  static const String githubRepo = 'tijori';
   static const String githubReleasesApi =
       'https://api.github.com/repos/$githubOwner/$githubRepo/releases/latest';
 

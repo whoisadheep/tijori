@@ -55,8 +55,14 @@ abstract final class GirviCalculator {
 
     if (months < 0) months = 0;
 
+    // Safe calendar month addition with day clamping (e.g. Jan 31 -> Feb 28)
+    final targetYear = s.year + (s.month + months - 1) ~/ 12;
+    final targetMonth = ((s.month + months - 1) % 12) + 1;
+    final daysInTargetMonth = DateTime(targetYear, targetMonth + 1, 0).day;
+    final clampedDay = s.day > daysInTargetMonth ? daysInTargetMonth : s.day;
+
     // Remaining days after the full months.
-    final afterFullMonths = DateTime(s.year, s.month + months, s.day);
+    final afterFullMonths = DateTime(targetYear, targetMonth, clampedDay);
     final remainingDays = _daysBetween(afterFullMonths, e);
 
     // Count the partial month if remaining days meet the grace threshold.
@@ -88,6 +94,12 @@ abstract final class GirviCalculator {
       purityPercent >= 0 && purityPercent <= 100,
       'purityPercent must be 0–100',
     );
+    if (grossWeight < 0) {
+      throw ArgumentError.value(grossWeight, 'grossWeight', 'must be non-negative');
+    }
+    if (purityPercent < 0 || purityPercent > 100) {
+      throw ArgumentError.value(purityPercent, 'purityPercent', 'must be 0–100');
+    }
     return _roundTo2(grossWeight * (purityPercent / 100));
   }
 
@@ -242,8 +254,9 @@ abstract final class GirviCalculator {
           segmentStart = accrualEnd;
 
         case ReceiptType.principalRepayment:
-          totalPrincipalRepaid += receipt.amount;
-          currentPrincipal = _roundTo2(currentPrincipal - receipt.amount);
+          final payable = receipt.amount > currentPrincipal ? currentPrincipal : receipt.amount;
+          totalPrincipalRepaid += payable;
+          currentPrincipal = _roundTo2(currentPrincipal - payable);
           if (currentPrincipal < 0) currentPrincipal = 0;
           // After a principal repayment the outstanding amount changed, so a
           // new segment begins.
@@ -268,8 +281,8 @@ abstract final class GirviCalculator {
     totalPrincipalRepaid = _roundTo2(totalPrincipalRepaid);
     currentPrincipal = _roundTo2(currentPrincipal);
 
-    final pendingInterest =
-        _roundTo2(totalAccruedInterest - totalInterestPaid);
+    final rawPendingInterest = _roundTo2(totalAccruedInterest - totalInterestPaid);
+    final pendingInterest = rawPendingInterest < 0 ? 0.0 : rawPendingInterest;
     final totalOutstanding = _roundTo2(currentPrincipal + pendingInterest);
 
     return LoanLedgerSummary(

@@ -40,12 +40,13 @@ class LoanReceiptsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Generates the next receipt number in the format "REC-000001".
+  /// Uses max ID to safely avoid unique key collisions even after row deletions.
   Future<String> generateNextReceiptNumber() async {
-    final countExp = loanReceipts.id.count();
-    final query = selectOnly(loanReceipts)..addColumns([countExp]);
+    final maxIdExp = loanReceipts.id.max();
+    final query = selectOnly(loanReceipts)..addColumns([maxIdExp]);
     final row = await query.getSingle();
-    final currentCount = row.read(countExp) ?? 0;
-    final nextNumber = currentCount + 1;
+    final maxId = row.read(maxIdExp) ?? 0;
+    final nextNumber = maxId + 1;
     return 'REC-${nextNumber.toString().padLeft(6, '0')}';
   }
 }

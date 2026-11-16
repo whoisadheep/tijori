@@ -18,6 +18,21 @@ abstract final class SlipPrinter {
   static final _dateFormat = DateFormat('dd-MMM-yyyy');
   static final _dateTimeFormat = DateFormat('dd-MMM-yyyy hh:mm a');
 
+  static Future<pw.Document> _createDocument() async {
+    try {
+      final font = await PdfGoogleFonts.notoSansRegular();
+      final fontBold = await PdfGoogleFonts.notoSansBold();
+      return pw.Document(
+        theme: pw.ThemeData.withFont(
+          base: font,
+          bold: fontBold,
+        ),
+      );
+    } catch (_) {
+      return pw.Document();
+    }
+  }
+
   /// Generates a PDF byte stream for a Girvi Loan Pledge slip.
   static Future<Uint8List> generateGirviSlipPdf({
     required GirviLoan loan,
@@ -28,11 +43,11 @@ abstract final class SlipPrinter {
     String? watermarkText,
     bool isThermal = true,
   }) async {
-    final pdf = pw.Document();
+    final pdf = await _createDocument();
     final format = isThermal
         ? const PdfPageFormat(
             72 * PdfPageFormat.mm,
-            double.infinity,
+            200 * PdfPageFormat.mm,
             marginAll: 4 * PdfPageFormat.mm,
           )
         : PdfPageFormat.a5;
@@ -351,11 +366,11 @@ abstract final class SlipPrinter {
     String? watermarkText,
     bool isThermal = true,
   }) async {
-    final pdf = pw.Document();
+    final pdf = await _createDocument();
     final format = isThermal
         ? const PdfPageFormat(
             72 * PdfPageFormat.mm,
-            double.infinity,
+            200 * PdfPageFormat.mm,
             marginAll: 4 * PdfPageFormat.mm,
           )
         : PdfPageFormat.a5;
@@ -503,11 +518,11 @@ abstract final class SlipPrinter {
     String? watermarkText,
     bool isThermal = true,
   }) async {
-    final pdf = pw.Document();
+    final pdf = await _createDocument();
     final format = isThermal
         ? const PdfPageFormat(
             72 * PdfPageFormat.mm,
-            double.infinity,
+            250 * PdfPageFormat.mm,
             marginAll: 4 * PdfPageFormat.mm,
           )
         : PdfPageFormat.a4;
@@ -715,11 +730,11 @@ abstract final class SlipPrinter {
     String? watermarkText,
     bool isThermal = true,
   }) async {
-    final pdf = pw.Document();
+    final pdf = await _createDocument();
     final format = isThermal
         ? const PdfPageFormat(
             72 * PdfPageFormat.mm,
-            double.infinity,
+            250 * PdfPageFormat.mm,
             marginAll: 4 * PdfPageFormat.mm,
           )
         : PdfPageFormat.a4;

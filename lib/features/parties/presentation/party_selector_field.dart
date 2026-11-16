@@ -8,6 +8,7 @@ import 'quick_add_party_dialog.dart';
 /// Autocomplete and quick-selection field for picking a [Party].
 class PartySelectorField extends ConsumerWidget {
   final int? selectedPartyId;
+  final Party? selectedParty;
   final ValueChanged<Party?> onPartySelected;
   final PartyGroupType filterGroup;
   final String label;
@@ -16,6 +17,7 @@ class PartySelectorField extends ConsumerWidget {
   const PartySelectorField({
     super.key,
     required this.selectedPartyId,
+    this.selectedParty,
     required this.onPartySelected,
     this.filterGroup = PartyGroupType.customer,
     this.label = 'Customer / Party *',
@@ -31,12 +33,20 @@ class PartySelectorField extends ConsumerWidget {
     return partiesAsync.when(
       data: (parties) {
         final filtered = parties
-            .where((p) => p.groupType == filterGroup || filterGroup == PartyGroupType.customer)
+            .where((p) =>
+                p.groupType == filterGroup ||
+                filterGroup == PartyGroupType.customer)
             .toList();
 
-        final selectedParty = filtered.cast<Party?>().firstWhere(
+        // Ensure currently selected party is present in the list even if stream has not updated
+        if (selectedParty != null &&
+            !filtered.any((p) => p.id == selectedParty!.id)) {
+          filtered.insert(0, selectedParty!);
+        }
+
+        final currentSelected = filtered.cast<Party?>().firstWhere(
               (p) => p?.id == selectedPartyId,
-              orElse: () => null,
+              orElse: () => selectedParty,
             );
 
         return Row(
@@ -44,12 +54,15 @@ class PartySelectorField extends ConsumerWidget {
           children: [
             Expanded(
               child: DropdownButtonFormField<int>(
-                key: ValueKey(selectedParty?.id),
-                initialValue: selectedParty?.id,
+                key: ValueKey(currentSelected?.id),
+                initialValue: currentSelected?.id,
                 decoration: InputDecoration(
                   labelText: label,
                   prefixIcon: const Icon(Icons.person_search_rounded),
                   isDense: true,
+                  helperText: filtered.isEmpty
+                      ? 'No parties found. Click "+" to create one.'
+                      : null,
                 ),
                 isExpanded: true,
                 hint: const Text('Search or select a party...'),

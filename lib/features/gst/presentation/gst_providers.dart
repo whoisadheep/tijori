@@ -134,16 +134,19 @@ class DailyCashRegisterState {
   });
 }
 
+/// Stream provider for all loan receipts.
+final allLoanReceiptsStreamProvider =
+    StreamProvider.autoDispose<List<LoanReceipt>>((ref) {
+  final dao = ref.watch(loanReceiptsDaoProvider);
+  return dao.watchAllReceipts();
+});
+
 /// Reactive provider calculating the real-time cash drawer balance and audit log.
 final dailyCashRegisterProvider =
     Provider.autoDispose<DailyCashRegisterState>((ref) {
   final vouchers = ref.watch(allGstVouchersProvider).valueOrNull ?? [];
   final allLoans = ref.watch(allLoansProvider).valueOrNull ?? [];
-  final receiptsDao = ref.watch(loanReceiptsDaoProvider);
-
-  // We can query all loan receipts reactively
-  final receiptsStream = receiptsDao.watchAllReceipts();
-  final receipts = ref.watch(StreamProvider((_) => receiptsStream)).valueOrNull ?? [];
+  final receipts = ref.watch(allLoanReceiptsStreamProvider).valueOrNull ?? [];
 
   final entries = <CashMovementEntry>[];
   double cashIn = 0.0;

@@ -61,6 +61,15 @@ abstract final class GstCalculator {
     }
 
     final divisor = 1.0 + (taxSlabPercent / 100.0);
+    if (divisor <= 0) {
+      return GstBreakdown(
+        taxableAmount: grossTotal,
+        taxSlabPercent: 0.0,
+        cgstAmount: 0.0,
+        sgstAmount: 0.0,
+        totalAmount: grossTotal,
+      );
+    }
     final taxable = double.parse((grossTotal / divisor).toStringAsFixed(2));
     return computeTax(taxableAmount: taxable, taxSlabPercent: taxSlabPercent);
   }

@@ -24,6 +24,7 @@ class NewGirviLoanScreen extends ConsumerStatefulWidget {
 
 class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
   String? _previewSlipNumber;
   Party? _selectedParty;
@@ -81,6 +82,7 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _grossWeightCtrl.dispose();
     _purityCtrl.dispose();
     _netWeightCtrl.dispose();
@@ -119,6 +121,9 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
         final suggestedPrincipal = (val * 0.75).round();
         _principalCtrl.text = suggestedPrincipal.toString();
       }
+    } else {
+      _netWeightCtrl.text = '0.00';
+      _estimatedValueCtrl.text = '0';
     }
     setState(() {});
   }
@@ -142,11 +147,51 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
   }
 
   Future<void> _submitLoan() async {
-    if (!_formKey.currentState!.validate()) return;
+    final isCustomerMissing = _selectedParty == null;
+    final isFormValid = _formKey.currentState?.validate() ?? false;
 
-    if (_selectedParty == null) {
+    if (isCustomerMissing || !isFormValid) {
+      // Auto-scroll to top so user clearly sees what needs attention
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      final errorMessages = <String>[];
+      if (isCustomerMissing) errorMessages.add('Customer / Borrower');
+      if (_grossWeightCtrl.text.trim().isEmpty) errorMessages.add('Gross Weight');
+      if (_itemDescCtrl.text.trim().isEmpty) errorMessages.add('Item Description');
+      if (_principalCtrl.text.trim().isEmpty) errorMessages.add('Principal Amount');
+
+      final message = errorMessages.isNotEmpty
+          ? 'Please complete required fields: ${errorMessages.join(', ')}'
+          : 'Please complete all required fields (*)';
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select or add a customer first.')),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(child: Text(message)),
+            ],
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(24, 0, 24, 80),
+          action: SnackBarAction(
+            label: 'DISMISS',
+            textColor: Colors.white,
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+          duration: const Duration(seconds: 4),
+        ),
       );
       return;
     }
@@ -167,50 +212,69 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final dao = ref.read(girviLoansDaoProvider);
-      final finalSlipNo = await dao.generateNextSlipNumber();
+      final gross = double.tryParse(_grossWeightCtrl.text.trim()) ?? 0.0;
+      final purity = double.tryParse(_purityCtrl.text.trim()) ?? 91.6;
+      final net = double.tryParse(_netWeightCtrl.text.trim()) ??
+          GirviCalculator.calculateNetWeight(grossWeight: gross, purityPercent: purity);
+      final rate = double.tryParse(_ratePerGramCtrl.text.trim()) ?? 7000.0;
+      final estVal = double.tryParse(_estimatedValueCtrl.text.trim()) ??
+          GirviCalculator.calculateEstimatedValue(netWeight: net, ratePerGram: rate);
+      final principal = double.tryParse(_principalCtrl.text.trim()) ?? 0.0;
+      final roi = double.tryParse(_roiCtrl.text.trim()) ?? 1.5;
 
-      final gross = double.parse(_grossWeightCtrl.text);
-      final purity = double.parse(_purityCtrl.text);
-      final net = double.parse(_netWeightCtrl.text);
-      final estVal = double.parse(_estimatedValueCtrl.text);
-      final principal = double.parse(_principalCtrl.text);
-      final roi = double.parse(_roiCtrl.text);
+      if (gross <= 0) {
+        throw 'Gross weight must be greater than 0.';
+      }
+      if (purity <= 0 || purity > 100) {
+        throw 'Touch (Purity) percentage must be between 0.1% and 100%.';
+      }
+      if (principal <= 0) {
+        throw 'Principal loan amount must be greater than ₹0.';
+      }
+      if (roi < 0 || roi > 50) {
+        throw 'Rate of interest must be between 0% and 50% per month.';
+      }
 
-      final companion = GirviLoansCompanion.insert(
-        slipNumber: finalSlipNo,
-        partyId: _selectedParty!.id,
-        transactionDate: _transactionDate,
-        interestStartDate: _interestStartDate,
-        roi: roi,
-        interestType: _interestType,
-        metalType: _metalType,
-        grossWeight: gross,
-        purityPercent: purity,
-        netWeight: net,
-        estimatedValue: estVal,
-        principalAmount: principal,
-        paymentMode: _paymentMode,
-        itemDescription: _itemDescCtrl.text.trim(),
-        localPhotoPath: _localPhotoPath != null
-            ? drift.Value(_localPhotoPath)
-            : const drift.Value.absent(),
-        rackLocation: _rackLocationCtrl.text.trim().isNotEmpty
-            ? drift.Value(_rackLocationCtrl.text.trim())
-            : const drift.Value.absent(),
-        remarks: _remarksCtrl.text.trim().isNotEmpty
-            ? drift.Value(_remarksCtrl.text.trim())
-            : const drift.Value.absent(),
-        guarantorName: _guarantorNameCtrl.text.trim().isNotEmpty
-            ? drift.Value(_guarantorNameCtrl.text.trim())
-            : const drift.Value.absent(),
-        guarantorPhone: _guarantorPhoneCtrl.text.trim().isNotEmpty
-            ? drift.Value(_guarantorPhoneCtrl.text.trim())
-            : const drift.Value.absent(),
-      );
+      final db = ref.read(appDatabaseProvider);
+      final createdLoan = await db.transaction(() async {
+        final dao = db.girviLoansDao;
+        final finalSlipNo = await dao.generateNextSlipNumber();
 
-      final newLoanId = await dao.insertLoan(companion);
-      final createdLoan = await dao.getLoanById(newLoanId);
+        final companion = GirviLoansCompanion.insert(
+          slipNumber: finalSlipNo,
+          partyId: _selectedParty!.id,
+          transactionDate: _transactionDate,
+          interestStartDate: _interestStartDate,
+          roi: roi,
+          interestType: _interestType,
+          metalType: _metalType,
+          grossWeight: gross,
+          purityPercent: purity,
+          netWeight: net,
+          estimatedValue: estVal,
+          principalAmount: principal,
+          paymentMode: _paymentMode,
+          itemDescription: _itemDescCtrl.text.trim(),
+          localPhotoPath: _localPhotoPath != null
+              ? drift.Value(_localPhotoPath)
+              : const drift.Value.absent(),
+          rackLocation: _rackLocationCtrl.text.trim().isNotEmpty
+              ? drift.Value(_rackLocationCtrl.text.trim())
+              : const drift.Value.absent(),
+          remarks: _remarksCtrl.text.trim().isNotEmpty
+              ? drift.Value(_remarksCtrl.text.trim())
+              : const drift.Value.absent(),
+          guarantorName: _guarantorNameCtrl.text.trim().isNotEmpty
+              ? drift.Value(_guarantorNameCtrl.text.trim())
+              : const drift.Value.absent(),
+          guarantorPhone: _guarantorPhoneCtrl.text.trim().isNotEmpty
+              ? drift.Value(_guarantorPhoneCtrl.text.trim())
+              : const drift.Value.absent(),
+        );
+
+        final newLoanId = await dao.insertLoan(companion);
+        return await dao.getLoanById(newLoanId);
+      });
 
       if (mounted && createdLoan != null) {
         _showSuccessAndPrintDialog(createdLoan);
@@ -318,6 +382,7 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20.0),
           child: Center(
             child: ConstrainedBox(
@@ -346,6 +411,7 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
                           const SizedBox(height: 12),
                           PartySelectorField(
                             selectedPartyId: _selectedParty?.id,
+                            selectedParty: _selectedParty,
                             onPartySelected: (p) {
                               setState(() => _selectedParty = p);
                             },
@@ -697,6 +763,7 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
                               Expanded(
                                 child: DropdownButtonFormField<InterestType>(
                                   initialValue: _interestType,
+                                  isExpanded: true,
                                   decoration: const InputDecoration(
                                     labelText: 'Interest Engine',
                                     isDense: true,
@@ -705,7 +772,7 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
                                     DropdownMenuItem(
                                       value: InterestType.monthWise,
                                       child: Text(
-                                          'MonthWise (Standard Calendar)'),
+                                          'MonthWise (Calendar)'),
                                     ),
                                     DropdownMenuItem(
                                       value: InterestType.dayWise,
@@ -723,8 +790,9 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
                               Expanded(
                                 child: DropdownButtonFormField<PaymentMode>(
                                   initialValue: _paymentMode,
+                                  isExpanded: true,
                                   decoration: const InputDecoration(
-                                    labelText: 'Disbursement Payment Mode',
+                                    labelText: 'Disbursement Mode',
                                     isDense: true,
                                   ),
                                   items: PaymentMode.values
@@ -777,8 +845,15 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       OutlinedButton(
-                        onPressed:
-                            _isSaving ? null : () => Navigator.of(context).pop(),
+                        onPressed: _isSaving
+                            ? null
+                            : () {
+                                if (context.canPop()) {
+                                  context.pop();
+                                } else {
+                                  context.go('/girvi');
+                                }
+                              },
                         child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 16),

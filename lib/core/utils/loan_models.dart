@@ -32,9 +32,13 @@ final class LoanReceiptEntry implements Comparable<LoanReceiptEntry> {
     required this.amount,
   });
 
-  /// Natural ordering by [date] (ascending).
+  /// Natural ordering by [date] (ascending), then prioritizing interest over principal receipts on same timestamp.
   @override
-  int compareTo(LoanReceiptEntry other) => date.compareTo(other.date);
+  int compareTo(LoanReceiptEntry other) {
+    final dateComp = date.compareTo(other.date);
+    if (dateComp != 0) return dateComp;
+    return type.index.compareTo(other.type.index);
+  }
 
   @override
   String toString() =>

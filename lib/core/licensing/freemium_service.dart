@@ -77,6 +77,7 @@ class FreemiumNotifier extends Notifier<LicenseState> {
   Future<bool> refreshLicenseSilently() async {
     try {
       // 1. Verify Supabase initialization and active session
+      // In offline-first mode without Supabase.initialize(), accessing Supabase.instance asserts.
       final supabase = Supabase.instance.client;
       final currentUser = supabase.auth.currentUser;
       if (currentUser == null) {
@@ -116,6 +117,10 @@ class FreemiumNotifier extends Notifier<LicenseState> {
         return true;
       }
     } catch (e) {
+      if (e is AssertionError) {
+        // Expected when running offline without Supabase initialized
+        return false;
+      }
       debugPrint(
         '[Freemium] Remote check-in skipped or unavailable (offline): $e',
       );

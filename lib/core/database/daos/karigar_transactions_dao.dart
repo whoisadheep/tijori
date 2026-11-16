@@ -33,12 +33,13 @@ class KarigarTransactionsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Generates the next voucher number in the format "KRG-000001".
+  /// Uses max ID to safely avoid unique key collisions even after row deletions.
   Future<String> generateNextVoucherNumber() async {
-    final countExp = karigarTransactions.id.count();
-    final query = selectOnly(karigarTransactions)..addColumns([countExp]);
+    final maxIdExp = karigarTransactions.id.max();
+    final query = selectOnly(karigarTransactions)..addColumns([maxIdExp]);
     final row = await query.getSingle();
-    final currentCount = row.read(countExp) ?? 0;
-    final nextNumber = currentCount + 1;
+    final maxId = row.read(maxIdExp) ?? 0;
+    final nextNumber = maxId + 1;
     return 'KRG-${nextNumber.toString().padLeft(6, '0')}';
   }
 }

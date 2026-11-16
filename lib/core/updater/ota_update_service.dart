@@ -49,6 +49,8 @@ class OtaUpdateNotifier extends Notifier<UpdateState> {
       final pkg = await PackageInfo.fromPlatform();
       final current = SemanticVersion.parse('${pkg.version}+${pkg.buildNumber}');
       state = state.copyWith(currentVersion: current);
+      // Silently check for updates in background on launch
+      unawaited(checkForUpdates());
     } catch (e) {
       debugPrint('[OTA] Unable to retrieve PackageInfo: $e');
       state = state.copyWith(currentVersion: const SemanticVersion(major: 1, minor: 0, patch: 0));

@@ -1,18 +1,14 @@
-import 'dart:ffi';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqlite3/open.dart';
 import 'package:tijori/core/database/app_database.dart';
+import '../../test_sqlite_helper.dart';
 
 void main() {
   late AppDatabase db;
 
   setUpAll(() {
-    open.overrideFor(
-      OperatingSystem.linux,
-      () => DynamicLibrary.open('libsqlite3.so.0'),
-    );
+    initializeTestSqlite();
   });
 
   setUp(() {

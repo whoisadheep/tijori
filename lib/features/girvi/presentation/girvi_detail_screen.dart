@@ -155,6 +155,33 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
   }
 
   Future<void> _closeLoan(GirviLoan loan) async {
+    final summary = ref.read(loanLedgerProvider(loan.id)).valueOrNull;
+    if (summary != null && summary.totalOutstanding > 0) {
+      final proceedAnyway = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Outstanding Debt Pending!'),
+          content: Text(
+            'Warning: Loan #${loan.slipNumber} still carries an unsettled balance of ₹${summary.totalOutstanding.toStringAsFixed(2)} (Principal: ₹${summary.remainingPrincipal.toStringAsFixed(2)}, Interest: ₹${summary.pendingInterest.toStringAsFixed(2)}).\n\nClosing this loan will forfeit tracking of this debt. Are you sure you wish to close without collecting payment?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel & Collect Payment'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Force Close Anyway'),
+            ),
+          ],
+        ),
+      );
+      if (proceedAnyway != true) return;
+    }
+
+    if (!mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

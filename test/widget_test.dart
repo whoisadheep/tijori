@@ -1,18 +1,14 @@
-import 'dart:ffi' hide Size;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqlite3/open.dart';
 import 'package:tijori/app/tijori_app.dart';
 import 'package:tijori/core/database/app_database.dart';
+import 'test_sqlite_helper.dart';
 
 void main() {
   setUpAll(() {
-    open.overrideFor(
-      OperatingSystem.linux,
-      () => DynamicLibrary.open('libsqlite3.so.0'),
-    );
+    initializeTestSqlite();
   });
 
   testWidgets('Tijori App root loads dashboard successfully', (WidgetTester tester) async {

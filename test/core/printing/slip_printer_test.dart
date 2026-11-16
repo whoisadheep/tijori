@@ -3,6 +3,7 @@ import 'package:tijori/core/database/app_database.dart';
 import 'package:tijori/core/printing/slip_printer.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('SlipPrinter PDF generation tests', () {
     final testParty = Party(
       id: 1,

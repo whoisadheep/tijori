@@ -43,13 +43,13 @@ class GstVouchersDao extends DatabaseAccessor<AppDatabase>
   /// - `expense`        → `"EXPENSE-000001"`
   /// - `income`         → `"INCOME-000001"`
   Future<String> generateNextBillNumber(GstVoucherType type) async {
-    final countExp = gstVouchers.id.count();
+    final maxIdExp = gstVouchers.id.max();
     final query = selectOnly(gstVouchers)
-      ..addColumns([countExp])
+      ..addColumns([maxIdExp])
       ..where(gstVouchers.voucherType.equalsValue(type));
     final row = await query.getSingle();
-    final currentCount = row.read(countExp) ?? 0;
-    final nextNumber = currentCount + 1;
+    final maxId = row.read(maxIdExp) ?? 0;
+    final nextNumber = maxId + 1;
     final prefix = type.name.toUpperCase();
     return '$prefix-${nextNumber.toString().padLeft(6, '0')}';
   }

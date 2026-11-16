@@ -63,12 +63,13 @@ class GirviLoansDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Generates the next slip number in the format "GIRVI-000001".
+  /// Uses max ID to safely avoid unique key collisions even after row deletions.
   Future<String> generateNextSlipNumber() async {
-    final countExp = girviLoans.id.count();
-    final query = selectOnly(girviLoans)..addColumns([countExp]);
+    final maxIdExp = girviLoans.id.max();
+    final query = selectOnly(girviLoans)..addColumns([maxIdExp]);
     final row = await query.getSingle();
-    final currentCount = row.read(countExp) ?? 0;
-    final nextNumber = currentCount + 1;
+    final maxId = row.read(maxIdExp) ?? 0;
+    final nextNumber = maxId + 1;
     return 'GIRVI-${nextNumber.toString().padLeft(6, '0')}';
   }
 }
