@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tijori/app/theme/app_colors.dart';
-import 'package:tijori/core/licensing/freemium_service.dart';
-import 'package:tijori/core/licensing/upgrade_paywall_dialog.dart';
 import 'package:tijori/core/updater/ota_update_service.dart';
 import 'package:tijori/core/updater/update_checker_widget.dart';
 import 'package:tijori/features/daily_rates/presentation/daily_rates_providers.dart';
@@ -62,7 +60,6 @@ class AdaptiveShell extends ConsumerWidget {
 
     final selectedIndex = _calculateSelectedIndex(context);
     final latestRateAsync = ref.watch(latestDailyRateProvider);
-    final license = ref.watch(freemiumProvider);
     final otaState = ref.watch(otaUpdateProvider);
 
     final Widget shellContent;
@@ -127,41 +124,22 @@ class AdaptiveShell extends ConsumerWidget {
                   alignment: Alignment.bottomCenter,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () {
-                        if (!license.effectiveTier.isPaid) {
-                          UpgradePaywallDialog.show(
-                            context,
-                            feature: GatedFeature.karigarManagement,
-                          );
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: license.effectiveTier.isPaid
-                              ? AppColors.champagneLight
-                              : AppColors.burntAmberLight,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: license.effectiveTier.isPaid
-                                ? AppColors.champagneBorder
-                                : AppColors.burntAmber.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        child: Text(
-                          license.effectiveTier.displayName.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: license.effectiveTier.isPaid
-                                ? AppColors.champagneDark
-                                : AppColors.burntAmberDark,
-                          ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.champagneLight,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.champagneBorder),
+                      ),
+                      child: const Text(
+                        'PRO EDITION',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.champagneDark,
                         ),
                       ),
                     ),
@@ -328,43 +306,24 @@ class AdaptiveShell extends ConsumerWidget {
 
                         // Current Edition Badge
                         ActionChip(
-                          avatar: Icon(
-                            license.effectiveTier.isPaid
-                                ? Icons.verified_rounded
-                                : Icons.lock_outline_rounded,
+                          avatar: const Icon(
+                            Icons.verified_rounded,
                             size: 16,
-                            color: license.effectiveTier.isPaid
-                                ? AppColors.champagneDark
-                                : AppColors.burntAmber,
+                            color: AppColors.champagneDark,
                           ),
-                          backgroundColor: license.effectiveTier.isPaid
-                              ? AppColors.champagneLight
-                              : AppColors.burntAmberLight,
-                          side: BorderSide(
-                            color: license.effectiveTier.isPaid
-                                ? AppColors.champagneBorder
-                                : AppColors.burntAmber.withValues(alpha: 0.5),
+                          backgroundColor: AppColors.champagneLight,
+                          side: const BorderSide(
+                            color: AppColors.champagneBorder,
                           ),
-                          label: Text(
-                            license.effectiveTier.displayName,
+                          label: const Text(
+                            'Full Edition',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: license.effectiveTier.isPaid
-                                  ? AppColors.champagneDark
-                                  : AppColors.burntAmberDark,
+                              color: AppColors.champagneDark,
                             ),
                           ),
-                          onPressed: () {
-                            if (!license.effectiveTier.isPaid) {
-                              UpgradePaywallDialog.show(
-                                context,
-                                feature: GatedFeature.karigarManagement,
-                              );
-                            } else {
-                              context.go('/settings');
-                            }
-                          },
+                          onPressed: () => context.go('/settings'),
                         ),
                       ],
                     ),

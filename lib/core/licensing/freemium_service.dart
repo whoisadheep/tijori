@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../constants/app_constants.dart';
-import '../database/app_database.dart';
 import 'license_models.dart';
 
 export 'license_models.dart';
@@ -22,9 +20,15 @@ class FreemiumNotifier extends Notifier<LicenseState> {
 
   @override
   LicenseState build() {
-    // Start with default Free tier immediately to remain non-blocking/synchronous
+    // Freemium disabled for now: start with active full edition
     _initializeLicense();
-    return LicenseState.defaultFree();
+    return LicenseState(
+      tier: SubscriptionTier.pro,
+      isActive: true,
+      remoteKillSwitch: false,
+      lastVerifiedAt: DateTime.now(),
+      shopName: 'Tijori Jewellers',
+    );
   }
 
   /// Loads cached state from secure storage and attempts a background remote refresh.
@@ -46,30 +50,21 @@ class FreemiumNotifier extends Notifier<LicenseState> {
   }
 
   /// Checks if a given feature is accessible under the current effective tier.
+  /// All features are currently fully unlocked.
   bool isFeatureAvailable(GatedFeature feature) {
-    return state.effectiveTier.index >= feature.requiredTier.index;
+    return true;
   }
 
-  /// Checks whether the user has hit the Free-tier active loan limit (25 loans).
+  /// Checks whether the user has hit the Free-tier active loan limit.
+  /// Always false (unlimited loans).
   Future<bool> hasReachedFreeLoanLimit() async {
-    if (state.effectiveTier.isPaid) {
-      return false;
-    }
-    try {
-      final activeCount =
-          await ref.read(girviLoansDaoProvider).countActiveLoans();
-      return activeCount >= AppConstants.freeMaxActiveLoans;
-    } catch (e) {
-      debugPrint('[Freemium] Error checking active loan count: $e');
-      return false;
-    }
+    return false;
   }
 
   /// Returns the watermark text required on generated PDFs/slips.
-  /// Returns `null` if the user is on Pro or Enterprise tier.
+  /// Returns `null` (no watermarks).
   String? getPdfWatermark() {
-    if (state.effectiveTier.isPaid) return null;
-    return 'Generated via Tijori ERP (Free Trial)';
+    return null;
   }
 
   /// Synchronizes license status against the remote Supabase control plane.
@@ -145,12 +140,10 @@ final freemiumProvider =
 /// Convenience provider to query feature availability reactively.
 final isFeatureAvailableProvider =
     Provider.family<bool, GatedFeature>((ref, feature) {
-  final license = ref.watch(freemiumProvider);
-  return license.effectiveTier.index >= feature.requiredTier.index;
+  return true;
 });
 
 /// Convenience provider to check active loan limit status.
 final hasReachedLoanLimitProvider = FutureProvider<bool>((ref) async {
-  final notifier = ref.read(freemiumProvider.notifier);
-  return notifier.hasReachedFreeLoanLimit();
+  return false;
 });

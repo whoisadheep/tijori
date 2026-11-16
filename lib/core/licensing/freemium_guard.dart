@@ -22,28 +22,17 @@ class FreemiumGuard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAvailable = ref.watch(isFeatureAvailableProvider(feature));
-
-    if (isAvailable) {
-      return child;
-    }
-
-    if (placeholder != null) {
-      return placeholder!;
-    }
-
-    return _DefaultLockedFeatureView(
-      feature: feature,
-      onUpgrade: onUpgrade,
-    );
+    // Freemium disabled: all features unlocked directly
+    return child;
   }
 }
 
-class _DefaultLockedFeatureView extends StatelessWidget {
+class DefaultLockedFeatureView extends StatelessWidget {
   final GatedFeature feature;
   final VoidCallback? onUpgrade;
 
-  const _DefaultLockedFeatureView({
+  const DefaultLockedFeatureView({
+    super.key,
     required this.feature,
     this.onUpgrade,
   });

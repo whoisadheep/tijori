@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:tijori/app/theme/app_colors.dart';
 import 'package:tijori/core/database/app_database.dart';
 import 'package:tijori/core/licensing/freemium_service.dart';
-import 'package:tijori/core/licensing/upgrade_paywall_dialog.dart';
 import 'package:tijori/core/printing/slip_printer.dart';
 import 'package:tijori/core/utils/girvi_calculator.dart';
 import 'package:tijori/core/utils/photo_storage_helper.dart';
@@ -193,19 +192,6 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
           duration: const Duration(seconds: 4),
         ),
       );
-      return;
-    }
-
-    // 1. Freemium Verification: Max 25 Active Loans in Free Tier
-    final hasReachedLimit =
-        await ref.read(freemiumProvider.notifier).hasReachedFreeLoanLimit();
-    if (hasReachedLimit) {
-      if (mounted) {
-        await UpgradePaywallDialog.show(
-          context,
-          feature: GatedFeature.girviLoans,
-        );
-      }
       return;
     }
 
