@@ -1,7 +1,7 @@
 name: tijori
 description: "Jewellery Girvi (Pawn/Loan), Karigar, & Accounting ERP — Offline-First"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.7.0

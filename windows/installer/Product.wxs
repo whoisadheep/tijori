@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <?ifndef ProductVersion?>
+    <?define ProductVersion = "1.0.1.0" ?>
+  <?endif?>
+
   <Product Id="*" 
            Name="Tijori Jewellery ERP" 
            Language="1033" 
-           Version="1.0.0.0" 
+           Version="$(var.ProductVersion)" 
            Manufacturer="Tijori" 
            UpgradeCode="4D68B4F9-3B1B-4A12-87F9-5369A1C81389">
     

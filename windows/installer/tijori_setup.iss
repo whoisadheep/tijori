@@ -1,6 +1,8 @@
 ; Script generated for Tijori Jewellery ERP Windows Installer
 #define MyAppName "Tijori Jewellery ERP"
-#define MyAppVersion "1.0.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.1"
+#endif
 #define MyAppPublisher "Tijori"
 #define MyAppURL "https://github.com/whoisadheep/tijori"
 #define MyAppExeName "tijori.exe"
@@ -18,7 +20,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile=License.rtf
 OutputDir=..\..\dist
-OutputBaseFilename=Tijori_v1.0.0_Setup_x64
+OutputBaseFilename=Tijori_v + MyAppVersion + _Setup_x64
 SetupIconFile=..\runner\resources\app_icon.ico
 Compression=lzma2/max
 SolidCompression=yes

@@ -63,33 +63,49 @@ jobs:
 
           Get-ChildItem -Path $releaseDir
 
+      - name: Resolve Application Version
+        shell: powershell
+        run: |
+          $content = Get-Content pubspec.yaml -Raw
+          if ($content -match 'version:\s*([0-9]+\.[0-9]+\.[0-9]+)') {
+            $ver = $matches[1]
+            Write-Host "Resolved application version: $ver"
+            "APP_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            Write-Error "Could not parse version from pubspec.yaml"
+          }
+
       - name: Build WiX Native MSI Installer
         shell: powershell
         run: |
+          $ver = $env:APP_VERSION
+          $wixVer = "$ver.0"
           $releaseDir = (Resolve-Path "build\windows\x64\runner\Release").Path
           Write-Host "Harvesting application files with WiX Heat from $releaseDir..."
           heat dir "$releaseDir" -cg AppFiles -dr INSTALLFOLDER -scom -sreg -srd -gg -var var.SourceDir -out AppFiles.wxs
 
-          Write-Host "Compiling WiX manifests..."
-          candle -arch x64 "-dSourceDir=$releaseDir" -ext WixUIExtension windows\installer\Product.wxs AppFiles.wxs
+          Write-Host "Compiling WiX manifests for v$wixVer..."
+          candle -arch x64 "-dSourceDir=$releaseDir" "-dProductVersion=$wixVer" -ext WixUIExtension windows\installer\Product.wxs AppFiles.wxs
 
           Write-Host "Linking MSI package..."
-          light -sval -ext WixUIExtension -b "$releaseDir" -out dist\Tijori_v1.0.0_Setup_x64.msi Product.wixobj AppFiles.wixobj
+          light -sval -ext WixUIExtension -b "$releaseDir" -out "dist\Tijori_v${ver}_Setup_x64.msi" Product.wixobj AppFiles.wixobj
 
       - name: Build Inno Setup Executable Installer
         shell: powershell
         run: |
-          Write-Host "Compiling Inno Setup EXE installer..."
-          ISCC.exe windows\installer\tijori_setup.iss
+          $ver = $env:APP_VERSION
+          Write-Host "Compiling Inno Setup EXE installer for v$ver..."
+          ISCC.exe "/DMyAppVersion=$ver" windows\installer\tijori_setup.iss
 
       - name: Generate Release Manifest version.json
         shell: powershell
         run: |
+          $ver = $env:APP_VERSION
           $manifest = @{
-            latest_version = "1.0.0"
+            latest_version = $ver
             min_required_version = "1.0.0"
-            changelog = "Official production Windows release with bundled Visual C++ Redistributable and offline SQLite engine."
-            windows_url = "https://github.com/whoisadheep/tijori/releases/download/v1.0.0/Tijori_v1.0.0_Setup_x64.msi"
+            changelog = "Custom Shop Profile & Branding configuration, dynamic thermal slip headers, zero-paywall full evaluation, and bundled Microsoft Visual C++ Redistributable."
+            windows_url = "https://github.com/whoisadheep/tijori/releases/download/v$ver/Tijori_v${ver}_Setup_x64.msi"
           }
           $manifest | ConvertTo-Json -Depth 3 | Out-File -FilePath dist\version.json -Encoding utf8
 
@@ -106,17 +122,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master'
         with:
-          tag_name: v1.0.0
-          name: "Tijori Jewellery ERP v1.0.0 (Windows Installer)"
+          tag_name: v${{ env.APP_VERSION }}
+          name: "Tijori Jewellery ERP v${{ env.APP_VERSION }} (Windows Installer)"
           body: |
-            ## Tijori Jewellery ERP — Official Windows Release v1.0.0
+            ## Tijori Jewellery ERP — Release v${{ env.APP_VERSION }}
             
-            ### Included in this release:
-            - **Microsoft Windows Installer (`.msi`)**: `Tijori_v1.0.0_Setup_x64.msi`
-            - **Windows Setup Wizard (`.exe`)**: `Tijori_v1.0.0_Setup_x64.exe`
-            - **Bundled Visual C++ Redistributable**: Bundles Microsoft Visual C++ 2015–2022 runtime libraries (`msvcp140.dll`, `vcruntime140.dll`, `vc_redist.x64.exe`) ensuring zero missing DLL errors.
+            ### What's New in this Update:
+            - **Custom Shop Profile & Branding**: Customize your Shop Name, Address, Phone, GSTIN, and License Number directly in Settings.
+            - **Dynamic Print Slip Headers**: Thermal pledge slips, payment receipts, Karigar statements, and GST invoices automatically print your custom shop details.
+            - **Live Thermal Slip Preview**: Real-time visual receipt preview in Settings.
+            - **Freemium Restrictions Removed**: Full evaluation unlocked with zero paywalls or limits.
+            - **Bundled Visual C++ Redistributable**: Bundles Microsoft Visual C++ 2015–2022 CRT runtime libraries (`msvcp140.dll`, `vcruntime140.dll`, `vc_redist.x64.exe`) ensuring zero missing DLL errors.
             - **Offline-First SQLite**: Embedded 64-bit SQLite engine (`sqlite3.dll`).
-            - **OTA Auto-Updater**: Automatic update checks linked to this repository.
+            - **Over-the-Air Auto-Updater**: Automatic update checks linked to this repository.
           files: |
             dist/*.msi
             dist/*.exe
