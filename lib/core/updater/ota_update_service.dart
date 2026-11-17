@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -93,11 +94,18 @@ class OtaUpdateNotifier extends Notifier<UpdateState> {
           final rawDownloadUrl = asset['browser_download_url'] as String?;
           if (rawDownloadUrl != null) {
             try {
-              final vRes = await _dio.get<Map<String, dynamic>>(
+              final vRes = await _dio.get<dynamic>(
                 rawDownloadUrl,
-                options: Options(responseType: ResponseType.json),
+                options: Options(responseType: ResponseType.plain),
               );
-              versionConfig = vRes.data;
+              if (vRes.data is Map<String, dynamic>) {
+                versionConfig = vRes.data as Map<String, dynamic>;
+              } else if (vRes.data is String) {
+                final decoded = jsonDecode(vRes.data as String);
+                if (decoded is Map<String, dynamic>) {
+                  versionConfig = decoded;
+                }
+              }
             } catch (e) {
               debugPrint('[OTA] Could not fetch attached version.json: $e');
             }

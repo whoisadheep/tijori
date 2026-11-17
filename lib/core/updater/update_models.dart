@@ -135,7 +135,9 @@ class ReleaseInfo {
 
         if (name.endsWith('.apk') && apkUrl == null) {
           apkUrl = downloadUrl;
-        } else if ((name.endsWith('.exe') || name.endsWith('.msix')) &&
+        } else if ((name.endsWith('.exe') ||
+                name.endsWith('.msi') ||
+                name.endsWith('.msix')) &&
             winUrl == null) {
           winUrl = downloadUrl;
         } else if ((name.endsWith('.appimage') ||
