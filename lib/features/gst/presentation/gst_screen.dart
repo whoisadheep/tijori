@@ -9,6 +9,7 @@ import 'package:tijori/core/printing/slip_printer.dart';
 import 'package:tijori/features/gst/presentation/gst_providers.dart';
 import 'package:tijori/features/gst/presentation/new_gst_voucher_dialog.dart';
 import 'package:tijori/features/parties/presentation/parties_providers.dart';
+import 'package:tijori/features/settings/presentation/shop_profile_provider.dart';
 
 class GstScreen extends ConsumerStatefulWidget {
   const GstScreen({super.key});
@@ -313,16 +314,23 @@ class _GstScreenState extends ConsumerState<GstScreen>
                                   icon: const Icon(Icons.print_rounded, size: 20),
                                   onPressed: () async {
                                     if (party != null) {
-                                      final license = ref.read(freemiumProvider);
-                                      final watermark = ref.read(freemiumProvider.notifier).getPdfWatermark();
+                                      final shopProfile =
+                                          ref.read(shopProfileProvider);
+                                      final watermark = ref
+                                          .read(freemiumProvider.notifier)
+                                          .getPdfWatermark();
 
                                       await SlipPrinter.printSlip(
                                         context,
                                         documentName: 'invoice_${v.billNumber}',
-                                        onGeneratePdf: () => SlipPrinter.generateGstInvoicePdf(
+                                        onGeneratePdf: () =>
+                                            SlipPrinter.generateGstInvoicePdf(
                                           voucher: v,
                                           party: party,
-                                          shopName: license.shopName,
+                                          shopName: shopProfile.shopName,
+                                          shopAddress: shopProfile.address,
+                                          shopPhone: shopProfile.phone,
+                                          shopGstin: shopProfile.gstin,
                                           watermarkText: watermark,
                                         ),
                                       );

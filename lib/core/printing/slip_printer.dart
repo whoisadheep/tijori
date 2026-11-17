@@ -40,6 +40,7 @@ abstract final class SlipPrinter {
     String? shopName,
     String? shopPhone,
     String? shopAddress,
+    String? termsAndConditions,
     String? watermarkText,
     bool isThermal = true,
   }) async {
@@ -332,6 +333,15 @@ abstract final class SlipPrinter {
                   ),
                 ],
               ),
+              // Terms & Conditions Footer
+              if (termsAndConditions != null && termsAndConditions.isNotEmpty) ...[
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  termsAndConditions,
+                  style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ],
               pw.SizedBox(height: 10),
 
               // Free trial Watermark if applicable
@@ -363,6 +373,8 @@ abstract final class SlipPrinter {
     required GirviLoan loan,
     required Party party,
     String? shopName,
+    String? shopAddress,
+    String? shopPhone,
     String? watermarkText,
     bool isThermal = true,
   }) async {
@@ -393,6 +405,22 @@ abstract final class SlipPrinter {
                   ),
                 ),
               ),
+              if (shopAddress != null && shopAddress.isNotEmpty)
+                pw.Center(
+                  child: pw.Text(
+                    shopAddress,
+                    textAlign: pw.TextAlign.center,
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ),
+              if (shopPhone != null && shopPhone.isNotEmpty)
+                pw.Center(
+                  child: pw.Text(
+                    'Tel: $shopPhone',
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ),
+              pw.SizedBox(height: 2),
               pw.Center(
                 child: pw.Text(
                   'PAYMENT ACKNOWLEDGEMENT RECEIPT',
@@ -515,6 +543,8 @@ abstract final class SlipPrinter {
     required double totalReceivedPure,
     required double pendingPureBalance,
     String? shopName,
+    String? shopAddress,
+    String? shopPhone,
     String? watermarkText,
     bool isThermal = true,
   }) async {
@@ -546,6 +576,21 @@ abstract final class SlipPrinter {
                   ),
                 ),
               ),
+              if (shopAddress != null && shopAddress.isNotEmpty)
+                pw.Center(
+                  child: pw.Text(
+                    shopAddress,
+                    textAlign: pw.TextAlign.center,
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ),
+              if (shopPhone != null && shopPhone.isNotEmpty)
+                pw.Center(
+                  child: pw.Text(
+                    'Tel: $shopPhone',
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ),
               pw.SizedBox(height: 2),
               pw.Center(
                 child: pw.Text(

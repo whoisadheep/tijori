@@ -6,6 +6,9 @@ import 'package:tijori/app/theme/theme_mode_provider.dart';
 import 'package:tijori/core/licensing/freemium_service.dart';
 import 'package:tijori/core/updater/update_checker_widget.dart';
 
+import 'edit_shop_profile_dialog.dart';
+import 'shop_profile_provider.dart';
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -18,6 +21,7 @@ class SettingsScreen extends ConsumerWidget {
     final license = ref.watch(freemiumProvider);
     final freemiumNotifier = ref.read(freemiumProvider.notifier);
     final currentThemeMode = ref.watch(themeModeProvider);
+    final shopProfile = ref.watch(shopProfileProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -31,7 +35,241 @@ class SettingsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. Appearance & Color Theme Card
+                // 1. Shop Profile & Thermal Slip Branding Card
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(
+                      color: AppColors.champagneBorder,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.champagneLight,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.champagneBorder,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.storefront_rounded,
+                                    color: AppColors.champagneDark,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Shop Profile & Print Slip Header',
+                                      style:
+                                          theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Customized on all thermal receipts and vouchers',
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.champagneDark,
+                                foregroundColor: AppColors.champagneOn,
+                              ),
+                              icon: const Icon(Icons.edit_rounded, size: 16),
+                              label: const Text('Edit Shop Details'),
+                              onPressed: () =>
+                                  EditShopProfileDialog.show(context),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+
+                        // Two column layout: Details on left, Live Paper Slip Header Preview on right
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Left Details
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    shopProfile.shopName.toUpperCase(),
+                                    style:
+                                        theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                      color: AppColors.burntAmberDark,
+                                    ),
+                                  ),
+                                  if (shopProfile.tagline != null &&
+                                      shopProfile.tagline!.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      shopProfile.tagline!,
+                                      style:
+                                          theme.textTheme.bodyMedium?.copyWith(
+                                        fontStyle: FontStyle.italic,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 12),
+                                  _buildDetailRow(
+                                    Icons.location_on_outlined,
+                                    shopProfile.address ??
+                                        'No address configured',
+                                  ),
+                                  const SizedBox(height: 6),
+                                  _buildDetailRow(
+                                    Icons.phone_outlined,
+                                    shopProfile.phone ??
+                                        'No phone configured',
+                                  ),
+                                  if (shopProfile.gstin != null &&
+                                      shopProfile.gstin!.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    _buildDetailRow(
+                                      Icons.receipt_long_outlined,
+                                      'GSTIN: ${shopProfile.gstin!}',
+                                    ),
+                                  ],
+                                  if (shopProfile.licenseNumber != null &&
+                                      shopProfile.licenseNumber!.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    _buildDetailRow(
+                                      Icons.badge_outlined,
+                                      'License: ${shopProfile.licenseNumber!}',
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+
+                            // Right: Thermal Paper Slip Preview box
+                            Expanded(
+                              flex: 2,
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black
+                                          .withValues(alpha: 0.05),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      '[ Thermal Slip Preview ]',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade600,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                    const Divider(
+                                      height: 12,
+                                      thickness: 0.5,
+                                    ),
+                                    Text(
+                                      shopProfile.shopName.toUpperCase(),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    if (shopProfile.address != null &&
+                                        shopProfile.address!.isNotEmpty)
+                                      Text(
+                                        shopProfile.address!,
+                                        style: const TextStyle(
+                                          fontSize: 8,
+                                          color: Colors.black87,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    if (shopProfile.phone != null &&
+                                        shopProfile.phone!.isNotEmpty)
+                                      Text(
+                                        'Tel: ${shopProfile.phone!}',
+                                        style: const TextStyle(
+                                          fontSize: 8,
+                                          color: Colors.black87,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Colors.black54,
+                                          width: 0.5,
+                                        ),
+                                        borderRadius:
+                                            BorderRadius.circular(2),
+                                      ),
+                                      child: const Text(
+                                        'GIRVI LOAN PLEDGE SLIP',
+                                        style: TextStyle(
+                                          fontSize: 7,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 2. Appearance & Color Theme Card
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -211,7 +449,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                         const Divider(height: 24),
                         Text(
-                          'Shop Name: ${license.shopName ?? "Tijori Jewellers (Local)"}',
+                          'Shop Name: ${shopProfile.shopName}',
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         if (license.ownerEmail != null)
@@ -311,6 +549,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: Colors.grey.shade600),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
     );
   }
 

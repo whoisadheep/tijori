@@ -10,6 +10,7 @@ import 'package:tijori/core/licensing/freemium_service.dart';
 import 'package:tijori/core/printing/slip_printer.dart';
 import 'package:tijori/core/utils/photo_storage_helper.dart';
 import 'package:tijori/features/parties/presentation/parties_providers.dart';
+import 'package:tijori/features/settings/presentation/shop_profile_provider.dart';
 
 import 'girvi_providers.dart';
 
@@ -276,7 +277,7 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
                 icon: const Icon(Icons.print_rounded),
                 onPressed: () {
                   if (party == null) return;
-                  final license = ref.read(freemiumProvider);
+                  final shopProfile = ref.read(shopProfileProvider);
                   final watermark =
                       ref.read(freemiumProvider.notifier).getPdfWatermark();
                   SlipPrinter.printSlip(
@@ -284,7 +285,10 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
                     onGeneratePdf: () => SlipPrinter.generateGirviSlipPdf(
                       loan: loan,
                       party: party,
-                      shopName: license.shopName,
+                      shopName: shopProfile.shopName,
+                      shopPhone: shopProfile.phone,
+                      shopAddress: shopProfile.address,
+                      termsAndConditions: shopProfile.termsAndConditions,
                       watermarkText: watermark,
                       isThermal: true,
                     ),
@@ -688,7 +692,8 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
                                   tooltip: 'Print Receipt Slip',
                                   onPressed: () {
                                     if (party == null) return;
-                                    final license = ref.read(freemiumProvider);
+                                    final shopProfile =
+                                        ref.read(shopProfileProvider);
                                     final watermark = ref
                                         .read(freemiumProvider.notifier)
                                         .getPdfWatermark();
@@ -699,7 +704,9 @@ class _GirviDetailScreenState extends ConsumerState<GirviDetailScreen> {
                                         receipt: rec,
                                         loan: loan,
                                         party: party,
-                                        shopName: license.shopName,
+                                        shopName: shopProfile.shopName,
+                                        shopAddress: shopProfile.address,
+                                        shopPhone: shopProfile.phone,
                                         watermarkText: watermark,
                                         isThermal: true,
                                       ),

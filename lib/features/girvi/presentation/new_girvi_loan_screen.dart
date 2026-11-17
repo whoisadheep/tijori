@@ -13,6 +13,7 @@ import 'package:tijori/core/utils/girvi_calculator.dart';
 import 'package:tijori/core/utils/photo_storage_helper.dart';
 import 'package:tijori/features/daily_rates/presentation/daily_rates_providers.dart';
 import 'package:tijori/features/parties/presentation/party_selector_field.dart';
+import 'package:tijori/features/settings/presentation/shop_profile_provider.dart';
 
 class NewGirviLoanScreen extends ConsumerStatefulWidget {
   const NewGirviLoanScreen({super.key});
@@ -282,7 +283,7 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
   }
 
   void _showSuccessAndPrintDialog(GirviLoan loan) {
-    final license = ref.read(freemiumProvider);
+    final shopProfile = ref.read(shopProfileProvider);
     final watermark = ref.read(freemiumProvider.notifier).getPdfWatermark();
 
     showDialog<void>(
@@ -316,7 +317,10 @@ class _NewGirviLoanScreenState extends ConsumerState<NewGirviLoanScreen> {
                 onGeneratePdf: () => SlipPrinter.generateGirviSlipPdf(
                   loan: loan,
                   party: _selectedParty!,
-                  shopName: license.shopName,
+                  shopName: shopProfile.shopName,
+                  shopPhone: shopProfile.phone,
+                  shopAddress: shopProfile.address,
+                  termsAndConditions: shopProfile.termsAndConditions,
                   watermarkText: watermark,
                   isThermal: true,
                 ),

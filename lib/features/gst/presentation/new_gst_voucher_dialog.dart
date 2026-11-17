@@ -9,6 +9,7 @@ import 'package:tijori/core/printing/slip_printer.dart';
 import 'package:tijori/core/utils/gst_calculator.dart';
 import 'package:tijori/features/parties/presentation/parties_providers.dart';
 import 'package:tijori/features/parties/presentation/quick_add_party_dialog.dart';
+import 'package:tijori/features/settings/presentation/shop_profile_provider.dart';
 
 class NewGstVoucherDialog extends ConsumerStatefulWidget {
   final GstVoucherType initialType;
@@ -164,8 +165,9 @@ class _NewGstVoucherDialogState extends ConsumerState<NewGstVoucherDialog> {
         Navigator.of(context).pop();
 
         if (andPrint && mounted) {
-          final license = ref.read(freemiumProvider);
-          final watermark = ref.read(freemiumProvider.notifier).getPdfWatermark();
+          final shopProfile = ref.read(shopProfileProvider);
+          final watermark =
+              ref.read(freemiumProvider.notifier).getPdfWatermark();
 
           await SlipPrinter.printSlip(
             context,
@@ -173,7 +175,10 @@ class _NewGstVoucherDialogState extends ConsumerState<NewGstVoucherDialog> {
             onGeneratePdf: () => SlipPrinter.generateGstInvoicePdf(
               voucher: createdVoucher,
               party: _selectedParty!,
-              shopName: license.shopName,
+              shopName: shopProfile.shopName,
+              shopAddress: shopProfile.address,
+              shopPhone: shopProfile.phone,
+              shopGstin: shopProfile.gstin,
               watermarkText: watermark,
             ),
           );

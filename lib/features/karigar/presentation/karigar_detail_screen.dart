@@ -8,6 +8,7 @@ import 'package:tijori/core/printing/slip_printer.dart';
 import 'package:tijori/features/karigar/presentation/karigar_providers.dart';
 import 'package:tijori/features/karigar/presentation/karigar_voucher_dialog.dart';
 import 'package:tijori/features/parties/presentation/parties_providers.dart';
+import 'package:tijori/features/settings/presentation/shop_profile_provider.dart';
 
 class KarigarDetailScreen extends ConsumerStatefulWidget {
   final int karigarId;
@@ -463,7 +464,7 @@ class _KarigarDetailScreenState extends ConsumerState<KarigarDetailScreen> {
     KarigarMetalSummary summary,
     List<KarigarTransaction> transactions,
   ) async {
-    final license = ref.read(freemiumProvider);
+    final shopProfile = ref.read(shopProfileProvider);
     final watermark = ref.read(freemiumProvider.notifier).getPdfWatermark();
 
     await SlipPrinter.printSlip(
@@ -475,7 +476,9 @@ class _KarigarDetailScreenState extends ConsumerState<KarigarDetailScreen> {
         totalIssuedPure: summary.totalIssuedPure,
         totalReceivedPure: summary.totalReceivedPure,
         pendingPureBalance: summary.pendingPureBalance,
-        shopName: license.shopName,
+        shopName: shopProfile.shopName,
+        shopAddress: shopProfile.address,
+        shopPhone: shopProfile.phone,
         watermarkText: watermark,
       ),
     );
